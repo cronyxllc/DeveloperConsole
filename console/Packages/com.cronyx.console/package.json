@@ -1,0 +1,21 @@
+{
+  "name": "com.cronyx.console",
+  "version": "0.1.0",
+  "displayName": "Developer Console",
+  "description": "A lightweight and extendable in-game developer console",
+  "unity": "2020.2",
+  "unityRelease": "1f1",
+  "dependencies": {
+    "com.unity.textmeshpro": "3.0.1"
+  },
+  "keywords": [
+    "console",
+    "developer console"
+  ],
+  "author": {
+    "name": "Cronyx LLC",
+    "email": "cronyxgames@gmail.com",
+    "url": "http://cronyxgames.com"
+  },
+  "hideInEditor": false
+}
