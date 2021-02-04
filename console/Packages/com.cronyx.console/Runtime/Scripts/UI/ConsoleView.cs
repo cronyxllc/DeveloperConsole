@@ -38,7 +38,7 @@ namespace Cronyx.Console.UI
 
 		private bool mEntriesLayoutDirty;
 
-		private static readonly string kUIResourcesPath = Path.Combine("Developer Console", "ConsoleView");
+		private const string kUIResourcesPath = "Developer Console/ConsoleView";
 		private string mPrefixFormat;
 
 		internal static ConsoleView CreateUI (Transform parent)
@@ -196,7 +196,11 @@ namespace Cronyx.Console.UI
 		// Pass +1 to go backward in time (less recent), -1 to go forward (more recent)
 		private void CycleInputHistory (int direction)
 		{
-			mInputHistoryEdittingIndex += direction;
+			// We can only cycle through history if we have history...
+			if (mInputHistory.Count > 0)
+				mInputHistoryEdittingIndex += direction;
+			else return;
+
 			if (mInputHistoryEdittingIndex < 0)
 			{
 				mInputHistoryEdittingIndex = -1;
@@ -242,31 +246,10 @@ namespace Cronyx.Console.UI
 			// When the console's working directory has changed, we must update the prefix
 			// that displays the current working directory.
 
-			string formatted = directory;
-
 			// If the directory is the home path, or a subdirectory, the working directory should display
 			// relative to that path
-
-			bool IsSubdirectory (string directory, string subdirectory)
-			{
-				DirectoryInfo dir = new DirectoryInfo(directory);
-				DirectoryInfo sub = new DirectoryInfo(subdirectory);
-
-				if (Path.GetFullPath(sub.FullName).Equals(Path.GetFullPath(dir.FullName)))
-					return true;
-
-				while (sub.Parent != null)
-				{
-					if (Path.GetFullPath(sub.Parent.FullName).Equals(Path.GetFullPath(dir.FullName)))
-						return true;
-					sub = sub.Parent;
-				}
-
-				return false;
-			}
-
-			if (IsSubdirectory(DeveloperConsole.HomeDirectory, directory))
-				formatted = Path.GetFullPath(directory).Replace(Path.GetFullPath(DeveloperConsole.HomeDirectory), "~");
+			if (StringUtils.TryGetRelative(DeveloperConsole.HomeDirectory, directory, out string formatted))
+				formatted = Path.Combine("~", formatted);
 
 			InputFieldPrefix.Text = string.Format(mPrefixFormat, formatted);
 		}

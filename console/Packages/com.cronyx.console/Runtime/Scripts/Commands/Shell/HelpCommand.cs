@@ -6,21 +6,32 @@ using System.Threading.Tasks;
 
 namespace Cronyx.Console.Commands.Shell
 {
-	[PersistentCommand(kCommandName, Description = "Displays help information about a command")]
+	[PersistentCommand(kCommandName, Description = "Displays help information about available commands")]
 	[EssentialCommand]
 	internal class HelpCommand : IConsoleCommand
 	{
 		private const string kCommandName = "help";
+		private static readonly string kUsage = $"usage: {kCommandName} [command]";
 
-		public string Help => $"usage: {kCommandName} <command>";
+		public string Help { get; } = $"{kUsage}\nIf no command is provided, lists all available commands.";
 
 		private void LogWarning(object message) => DeveloperConsole.LogWarning($"{kCommandName}: {message}");
 
 		public void Invoke(string data)
 		{
 			var args = DeveloperConsole.SplitArgs(data);
-			if (args.Length != 1) LogWarning(Help);
-			else
+			if (args.Length > 1) LogWarning(kUsage);
+			if (args.Length == 0)
+			{
+				// No arguments provided, list all commands
+				var commands = DeveloperConsole.Console.mCommands;
+
+				// Compile string of all commands and descriptions
+				StringBuilder sb = new StringBuilder();
+				foreach (var command in commands) sb.AppendLine($"{command.Key,-20} {command.Value.Description ?? string.Empty,-100}");
+				DeveloperConsole.Log(sb.ToString());
+			}
+			else if (args.Length == 1)
 			{
 				var cmdName = args[0].Trim().ToLower();
 				var commands = DeveloperConsole.Console.mCommands;

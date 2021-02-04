@@ -133,7 +133,7 @@ namespace Cronyx.Console
 		/// Gets the default alpha of the overlay that appears when opening the console.
 		/// </summary>
 		public static float ConsoleOverlayAlpha => Settings.mConsoleOverlayAlpha;
-		[SerializeField] internal float mConsoleOverlayAlpha = 0.1f;
+		[SerializeField] internal float mConsoleOverlayAlpha = 0.3f;
 
 		/// <summary>
 		/// Gets the character representing the console prefix.
@@ -174,7 +174,9 @@ namespace Cronyx.Console
 		internal static ConsoleSettings CreateSettings ()
 		{
 			var settings = CreateInstance<ConsoleSettings>();
-			settings.mConsoleFont = TMP_Settings.defaultFontAsset;
+
+			const string defaultFontAssetResourcesPath = "Developer Console/CourierPrimeAsset";
+			settings.mConsoleFont = Resources.Load<TMP_FontAsset>(defaultFontAssetResourcesPath);
 			return settings;
 		}
 

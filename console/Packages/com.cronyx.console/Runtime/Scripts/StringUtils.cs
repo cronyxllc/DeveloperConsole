@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,7 +17,6 @@ namespace Cronyx.Console
 			Splits.Clear();
 
 			if (groupingChars == null) groupingChars = new (char, char)[0];
-			input = input.Trim();
 
 			// First we must escape special characters from the string, and note
 			// the positions of any escaped characters
@@ -118,6 +118,66 @@ namespace Cronyx.Console
 				AddArgument(input.Length);
 
 			return arguments.ToArray();
+		}
+
+		/// <summary>
+		/// If <paramref name="to"/> is a subdirectory or subfile of <paramref name="from"/>, then outputs the path representing
+		/// <paramref name="to"/> relative to <paramref name="from"/>. If it is not relative, then outputs the full path
+		/// of <paramref name="to"/>.
+		/// </summary>
+		/// <returns>True if <paramref name="to"/> was a subdirectory or subfile of <paramref name="from"/></returns>
+		public static bool TryGetRelative (string from, string to, out string formatted)
+		{
+			bool DirectoriesEqual (DirectoryInfo d1, DirectoryInfo d2)
+			{
+				return string.Equals(Path.GetFullPath(d1.FullName).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+					Path.GetFullPath(d2.FullName).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+					StringComparison.InvariantCultureIgnoreCase);
+			}
+
+			bool IsSubdirectory(string parent, string child)
+			{
+				DirectoryInfo dir = new DirectoryInfo(parent);
+				DirectoryInfo sub = File.Exists(child) ? new FileInfo(child).Directory : new DirectoryInfo(child);
+
+				if (DirectoriesEqual(sub, dir)) return true;
+
+				while (sub.Parent != null)
+				{
+					if (DirectoriesEqual(sub.Parent, dir))
+						return true;
+					sub = sub.Parent;
+				}
+
+				return false;
+			}
+
+			string FormatItemName (string item)
+			{
+				item = Path.GetFullPath(item);
+				if (File.Exists(item)) item = item.TrimEnd(Path.DirectorySeparatorChar);
+				else if (!item.EndsWith(Path.DirectorySeparatorChar.ToString())) item += Path.DirectorySeparatorChar;
+				return item;
+			}
+
+			from = FormatItemName(from);
+			to = FormatItemName(to);
+			bool isRelative = IsSubdirectory(from, to);
+
+			if (isRelative)
+			{
+				// Get formatted relative string
+				Uri file = new Uri(to);
+				Uri folder = new Uri(from);
+				formatted = Uri.UnescapeDataString(
+					folder.MakeRelativeUri(file)
+						.ToString()
+						.Replace('/', Path.DirectorySeparatorChar)
+					);
+
+			} else formatted = to;
+
+			return isRelative;
 		}
 	}
 }

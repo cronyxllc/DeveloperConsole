@@ -406,6 +406,7 @@ namespace Cronyx.Console
 				throw new DirectoryNotFoundException($"No such directory exists: {newDirectory}");
 
 			mCurrentWorkingDirectory = newDirectory;
+			mCurrentWorkingDirectory = Path.GetFullPath(mCurrentWorkingDirectory);
 			mOnDirectoryChanged?.Invoke(mCurrentWorkingDirectory);
 		}
 
