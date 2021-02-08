@@ -53,8 +53,13 @@ namespace Cronyx.Console.Parsing.Parsers
 					else
 					{
 						// Search for special character
+						bool foundSpecialChar = false;
 						foreach (var c in Parser.SpecialChars)
-							if (input[0] == c) break; // Found special character not inside quotes, stop
+							if (input[0] == c) {
+								foundSpecialChar = true;
+								break;
+							};
+						if (foundSpecialChar) break; // Found special character not inside quotes, stop
 					}
 				}
 

@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Cronyx.Console.Parsing;
 
 #if UNITY_EDITOR
 using UnityEditor.Callbacks;
@@ -508,9 +509,13 @@ namespace Cronyx.Console
 		}
 
 		[PersistentCommand("test")]
-		public static void Test (string x)
+		public static void Test (
+			[Positional(Optional = true, Meta = "A")] string alpha,
+			[Positional(Optional = true, Meta = "G")] string gamma,
+			[Switch('b', Name = "beta", Description = "A string input that you can use", Meta = "B")] string beta
+			)
 		{
-			DeveloperConsole.LogError($"THIS IS COOL: {x}");
+			DeveloperConsole.LogError($"Alpha: {alpha}, Beta: {beta}, Gamma: {gamma}");
 		}
 	}
 }

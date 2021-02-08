@@ -63,7 +63,7 @@ namespace Cronyx.Console.Parsing
 			get => mDescription;
 			set
 			{
-				if (string.IsNullOrWhiteSpace(Description)) throw new ArgumentException(nameof(Description));
+				if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException(nameof(Description));
 				mDescription = value.Trim();
 			}
 		}

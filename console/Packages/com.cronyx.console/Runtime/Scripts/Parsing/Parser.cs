@@ -1,5 +1,6 @@
 ﻿using Cronyx.Console.Parsing.Parsers;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -25,13 +26,17 @@ namespace Cronyx.Console.Parsing
 
 		public static IEnumerable<(char Beginning, char Ending)> GroupingChars => mGroupingChars;
 
-		private static char[] mSpecialChars;
+		private static List<char> mSpecialChars;
 		public static IEnumerable<char> SpecialChars
 		{
 			get
 			{
 				if (mSpecialChars != null) return mSpecialChars;
-				mSpecialChars = mGroupingChars.SelectMany(x => new[] { x.Beginning, x.Ending }).ToArray();
+				mSpecialChars = mGroupingChars.SelectMany(x => new[] { x.Beginning, x.Ending }).ToList();
+
+				// Add additional special characters here:
+				mSpecialChars.Add(':'); // colon ':': for dictionary parsing
+
 				return mSpecialChars;
 			}
 		}
@@ -162,6 +167,7 @@ namespace Cronyx.Console.Parsing
 				parameter.FieldType = info.ParameterType;
 
 				// Fill in default values
+				parameter.Name = info.Name;
 				parameter.ParamType = ParameterType.Positional;
 				parameter.Required = true;
 				parameter.MetaVariable = info.Name;
@@ -176,8 +182,14 @@ namespace Cronyx.Console.Parsing
 					parameter.MetaVariable = parameterAttribute.Name;
 				}
 
-				parameter.Min = parameterAttribute.Min;
-				parameter.Max = parameterAttribute.Max;
+				// Handle min and max elements.
+				// Min and max can only be assigned if the field type inherits from IEnumerable
+				if (typeof(IEnumerable).IsAssignableFrom(parameter.FieldType))
+				{
+					parameter.Min = parameterAttribute.Min;
+					parameter.Max = parameterAttribute.Max;
+				}
+
 				parameter.Description = parameterAttribute.Description;
 				parameter.OptionalParserType = parameterAttribute.Parser;
 				if (parameterAttribute.Meta != null) parameter.MetaVariable = parameterAttribute.Meta;
@@ -442,6 +454,18 @@ namespace Cronyx.Console.Parsing
 			{
 				if (parametersUsed.Contains(parameter)) return false; // Duplicate parameter
 
+				// If this object is an IEnumerable, check that it has the right counts
+				if (value != null && value is IEnumerable e)
+				{
+					var count = 0;
+					foreach (var item in e) count++;
+					if ((parameter.Min >= 0 && count < parameter.Min)
+						|| (parameter.Max >= 0 && count > parameter.Max))
+					{
+						return false; // invalid amount of items
+					}
+				}
+
 				// Find the index in the arguments array of this parameter, and set its value
 				args[mParameterIndexes[parameter]] = value;
 				parametersUsed.Add(parameter);
@@ -594,7 +618,7 @@ namespace Cronyx.Console.Parsing
 					sb.Append(param.Required ? $"-{param.ShortName} " : $"[-{param.ShortName}] ");
 				else
 					// Switches
-					sb.Append(param.Required ? $"-{param.ShortName} {param.MetaVariable} " : $"[{param.ShortName} {param.MetaVariable}] ");
+					sb.Append(param.Required ? $"-{param.ShortName} {param.MetaVariable} " : $"[-{param.ShortName} {param.MetaVariable}] ");
 			}
 
 			return sb.ToString();
@@ -624,10 +648,11 @@ namespace Cronyx.Console.Parsing
 
 			var allParams = Enumerable.Concat(mPositionals, mNonPositionals);
 
-			// This method will show three groups of text:
+			// This method will show four groups of text:
 			//	(*)	Format, i.e. the types of all parameters and any format help for nested types
 			//	(*)	Mandatory Parameters, i.e. a list of and description of any mandatory parameters
 			//	(*)	Optional Parameters, i.e. a list of and description of any optional parameters
+			//	(*)	Restrictions, i.e. for IEnumerable fields that have either a min or max, a series of rows showing the minimum/maximum number of items
 			//
 			// Each group will be stored in a list of lists, representing rows and columns
 			// Each inner list represents a single row
@@ -635,6 +660,7 @@ namespace Cronyx.Console.Parsing
 			List<List<string>> formatGroup = new List<List<string>>();
 			List<List<string>> mandatoryGroup = new List<List<string>>();
 			List<List<string>> optionalGroup = new List<List<string>>();
+			List<List<string>> restrictionsGroup = new List<List<string>>();
 
 			// Format group:
 			//	Each row will represent a set of parameters tied to a single type, for instance:
@@ -700,6 +726,47 @@ namespace Cronyx.Console.Parsing
 				optionalGroup.Add(new List<string>() { ParameterNames(param), param.Description });
 			}
 
+			// Restrictions:
+			//	For IEnumerable parameters for which a range restriction has been placed (using the min/max properties)
+			//	this group will show how many items can be placed into each parameter.
+			//
+			//	Format:
+			//		[METAVARIABLE]		[DESCRIPTION OF RESTRICTION]
+			//
+			//	Example:
+			//		foo					Can have between 0 and 5 items
+			//		bar					Can have at most 5 items
+			//		cat					Must have at least 1 item
+			
+			// Get restriction description for this parameter.
+			// Returns null if there are no restrictions
+			string GetRestrictionDescription (Parameter parameter)
+			{
+				if (parameter.Min < 0 && parameter.Max < 0) return null; // there are no restrictions on this parameter
+
+				if (parameter.Min >= 0 && parameter.Max >= 0)
+					return $"Can have between {parameter.Min} and {parameter.Max} items";
+				else if (parameter.Min >= 0)
+				{
+					var description = $"Must have at least {parameter.Min} item";
+					if (parameter.Min > 1 || parameter.Min == 0) description += "s"; // Make plural
+					return description;
+				} else if (parameter.Max >= 0)
+				{
+					var description = $"Can have at most {parameter.Max} item";
+					if (parameter.Max > 1 || parameter.Max == 0) description += "s";
+					return description;
+				}
+
+				return null;
+			}
+
+			foreach (var param in allParams)
+			{
+				var restriction = GetRestrictionDescription(param);
+				if (restriction != null) restrictionsGroup.Add(new List<string>() { param.MetaVariable, restriction });
+			}
+
 			// Calculate column alignment based on the maximum length string appearing in each column
 			var allRows = formatGroup.Concat(mandatoryGroup).Concat(optionalGroup);
 
@@ -746,6 +813,19 @@ namespace Cronyx.Console.Parsing
 				
 				// Display each row
 				foreach (var row in optionalGroup)
+				{
+					sb.Append(' ', indent); // Indent text
+					sb.AppendLine(string.Format(parameterFormat, row[0], row[1]));
+				}
+			}
+
+			// Display restrictions group:
+			if (restrictionsGroup.Count > 0)
+			{
+				sb.AppendLine().AppendLine("Restrictions:");
+
+				// Display each row
+				foreach (var row in restrictionsGroup)
 				{
 					sb.Append(' ', indent); // Indent text
 					sb.AppendLine(string.Format(parameterFormat, row[0], row[1]));

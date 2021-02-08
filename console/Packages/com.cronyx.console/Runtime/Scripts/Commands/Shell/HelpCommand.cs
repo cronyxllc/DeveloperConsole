@@ -40,8 +40,36 @@ namespace Cronyx.Console.Commands.Shell
 				{
 					if (pair.Key.Equals(cmdName))
 					{
-						var helpString = $"<b>{pair.Key}:</b> {pair.Value.Description}\n\n{pair.Value.Command.Help}";
-						DeveloperConsole.Log(helpString);
+						var description = pair.Value.Description;
+						var help = pair.Value.Command.Help;
+
+						if (string.IsNullOrWhiteSpace(description))
+						{
+							if (string.IsNullOrWhiteSpace(help))
+							{
+								// No description or help text was provided with this command. Notify the user.
+								DeveloperConsole.Log($"No help information provided for <b>{pair.Key}</b>");
+							} else
+							{
+								// Help was provided, but no description
+								// Just print help text
+								DeveloperConsole.Log(help);
+							}
+						} else
+						{
+							if (string.IsNullOrWhiteSpace(help))
+							{
+								// A description was provided, but no help.
+								// Just print description
+								DeveloperConsole.Log($"<b>{pair.Key}:</b> {description}");
+							} else
+							{
+								// Both a description and help text were provided.
+								// Print both with a paragraph break between
+								DeveloperConsole.Log($"<b>{pair.Key}:</b> {description}\n\n{help}");
+							}
+						}
+
 						return;
 					}
 				}
