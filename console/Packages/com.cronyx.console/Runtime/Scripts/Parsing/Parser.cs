@@ -79,9 +79,12 @@ namespace Cronyx.Console.Parsing
 			return parser;
 		}
 
-		public static string GetFormattedName (Type type)
-		{
-			return null;
+		public static string GetTypeName<T>() => GetTypeName(typeof(T));
+
+		private static string GetTypeName(Type type) {
+			if (type == null)
+				throw new ArgumentNullException(nameof(type));
+			return GetParser(type).GetTypeName();
 		}
 
 		private enum ParameterType
@@ -105,8 +108,26 @@ namespace Cronyx.Console.Parsing
 			public char ShortName { get; private set; }
 			public Type FieldType { get; private set; }
 
-			internal IParameterParser Parser => GetParser(FieldType);
+			internal IParameterParser mParser;
+			internal IParameterParser Parser
+			{
+				get
+				{
+					if (mParser != null) return mParser;
+					mParser = GetOrCreateParser();
+					return mParser;
+				}
+			}
+
 			public string ParserFormat => Parser.GetFormat();
+
+			private IParameterParser GetOrCreateParser ()
+			{
+				// If a custom parser was specified, create it
+				if (OptionalParserType != null)
+					return Activator.CreateInstance(OptionalParserType, true) as IParameterParser;
+				return GetParser(FieldType);
+			}
 
 			public static Parameter FromParameterInfo (ParameterInfo info)
 			{
@@ -185,6 +206,14 @@ namespace Cronyx.Console.Parsing
 					throw new InvalidOperationException($"Parameter {arg.Name} in method {info.Name} in type {info.DeclaringType.Name} cannot be marked ref or out.");
 
 			// Build parameter list, checking proper order
+			// Also check that no two parameters have the same name,
+			// that no two parameters have the same metavariable,
+			// and that no two non-positional parameters have the same short name
+
+			ISet<string> names = new HashSet<string>();
+			ISet<string> metavars = new HashSet<string>();
+			ISet<char> shortNames = new HashSet<char>();
+
 			foreach (var arg in arguments)
 			{
 				var param = Parameter.FromParameterInfo(arg);
@@ -201,6 +230,23 @@ namespace Cronyx.Console.Parsing
 					throw new InvalidOperationException($"Required positional parameter {arg.Name} in method {info.Name} in type {info.DeclaringType.Name} may not come after any optional positional arguments.");
 				}
 
+				if (names.Contains(param.Name))
+					throw new InvalidOperationException($"Multiple parameters found with the same name: {param.Name}. Each parameter must have a distinct name.");
+				names.Add(param.Name);
+
+				if (metavars.Contains(param.MetaVariable))
+					throw new InvalidOperationException($"Multiple parameters found with the same metavariable: {param.MetaVariable}. Each parameter must have a distinct metavariable.");
+				metavars.Add(param.MetaVariable);
+
+				if (param.ParamType != ParameterType.Positional)
+				{
+					if (shortNames.Contains(param.ShortName))
+						throw new InvalidOperationException($"Multiple switches or flag parameters found with the same short name: {param.ShortName}. Each switch or flag parameter must have a distinct short name.");
+					shortNames.Add(param.ShortName);
+				}
+
+				parser.mParameterIndexes[param] = parser.mPositionals.Count + parser.mNonPositionals.Count;
+
 				parser.Add(param);
 			}
 
@@ -209,6 +255,7 @@ namespace Cronyx.Console.Parsing
 
 		private List<Parameter> mPositionals = new List<Parameter>();
 		private List<Parameter> mNonPositionals = new List<Parameter>();
+		private Dictionary<Parameter, int> mParameterIndexes = new Dictionary<Parameter, int>();
 
 		private Parser() { }
 
@@ -219,13 +266,253 @@ namespace Cronyx.Console.Parsing
 			else mNonPositionals.Add(parameter);
 		}
 
+		/// <summary>
+		/// Attempts to parse a long option appearing at the beginning of <paramref name="input"/>
+		/// </summary>
+		/// <param name="input">The object representing the command line input.</param>
+		/// <param name="parameter">The resulting parameter, null if none found.</param>
+		/// <param name="value">The resulting value associated with the long option, null if none found.</param>
+		/// <returns>A boolean indicating whether or not a long option was found.</returns>
+		private bool TryParseLongOption (ArgumentInput input, out Parameter parameter, out object value)
+		{
+			parameter = null;
+			value = null;
+			foreach (var param in mNonPositionals)
+			{
+				if (input.Match(param.Name))
+				{
+					// Found a parameter with this long option name
+					input.Claim(param.Name.Length); // Claim the parameter name
+
+					// If this is a flag parameter, there should be whitespace or EOL appearing immediately afterwards this parameter.
+					if (param.ParamType == ParameterType.Flag)
+					{
+						if (input.Length > 0 && !char.IsWhiteSpace(input[0])) return false;
+						value = true;
+						parameter = param;
+						return true;
+					} else
+					{
+						// Not a flag parameter, should be of the form --OPTION ARG or --OPTION=ARG
+						if (input.Length == 0) return false; // Edge case
+
+						if (input[0] == '=') input.Claim(1); // Claim optional equals
+						else if (char.IsWhiteSpace(input[0])) input.TrimWhitespace(); // Trim whitespace between long option and value
+						else return false; // There MUST be an '=' character or whitespace between a long option and its value
+
+						// Attempt to parse parameter value
+						if (!param.Parser.TryParse(input, out value)) return false; // Failed to parse
+
+						parameter = param;
+						return true;
+					}
+				}
+			}
+
+			return false; // No long option found
+		}
+
+		/// <summary>
+		/// Attempts to a parse short option (i.e. <c>-a arg</c> or <c>-aarg</c>) or a series of combined flag options (i.e. <c>-abc</c> is equivalent to <c>-a -b -c</c>) at the beginning of this input.
+		/// </summary>
+		/// <param name="input">The object representing the command line input</param>
+		/// <param name="parameters">An array of parameters that were identified as a result of this method</param>
+		/// <param name="values">An array of values whose indices correspond to the identified parameters stored in <paramref name="parameters"/></param>
+		/// <returns>A boolean indicating whether or not parsing was completed successfully.</returns>
+		private bool TryParseShortOptions (ArgumentInput input, out Parameter[] parameters, out object[] values)
+		{
+			parameters = new Parameter[0];
+			values = new object[0];
+
+			// Returns the parameter corresponding the given short name, 
+			// or null if none was found.
+			Parameter GetOption (char shortName)
+			{
+				foreach (var param in mNonPositionals)
+					if (param.ShortName == shortName)
+						return param;
+				return null;
+			}
+
+			if (input.Length == 0 || char.IsWhiteSpace(input[0])) return false; // Edge case for whitespace or EOL
+
+			Parameter current = GetOption(input[0]);
+			if (current == null) return false; // No parameter found for this short name
+
+			if (current.ParamType == ParameterType.Switch)
+			{
+				// This is a short option with a parameter after it
+				// Valid syntaxes that follow:
+				//	[OPTION][ARGUMENT]
+				//	[OPTION][WHITESPACE][ARGUMENT]
+
+				input.Claim(1);
+				input.TrimWhitespace(); // Trim whitespace between option and value if necessary
+				if (input.Length == 0) return false; // Edge case for EOL
+
+				// Parse argument
+				if (!current.Parser.TryParse(input, out object value)) return false; // Failed to parse value
+
+				parameters = new[] { current };
+				values = new[] { value };
+			} else if (current.ParamType == ParameterType.Flag)
+			{
+				// This is a flag, or multiple flags
+				// Valid syntaxes that follow:
+				// [OPTION]			i.e. -a
+				// [OPTION...]		i.e. -abc, where -b and -c are both flag parameters
+
+				List<Parameter> parametersList = new List<Parameter>();
+				List<object> valuesList = new List<object>();
+
+				while (current != null)
+				{
+					if (current.ParamType != ParameterType.Flag) return false; // All merged options must be flag options
+					parametersList.Add(current);
+					valuesList.Add(true);
+
+					input.Claim(1); // Consume character representing this option
+					if (input.Length == 0 || char.IsWhiteSpace(input[0])) current = null; // Handle EOL or whitespace
+					else
+					{
+						// Try to find another parameter
+						current = GetOption(input[0]);
+						if (current == null) return false; // No option corresponds to this short name; invalid
+					}
+				}
+
+				parameters = parametersList.ToArray();
+				values = valuesList.ToArray();
+			}
+
+			return true;
+		}
+
 		public bool TryParse (string input, out object[] arguments)
 		{
-			arguments = new object[mPositionals.Count + mNonPositionals.Count];
+			arguments = null;
+			var args = new object[mPositionals.Count + mNonPositionals.Count];
 
 			ArgumentInput argInput = new ArgumentInput(input);
 
-			return false;
+			// Function to check that all required parameters have been satisfied
+			bool AllSatisfied(ISet<Parameter> parameters)
+			{
+				foreach (Parameter param in mPositionals)
+					if (param.Required && !parameters.Contains(param)) return false;
+				foreach (Parameter param in mNonPositionals)
+					if (param.Required && !parameters.Contains(param)) return false;
+				return true;
+			}
+
+			// Keep track of all parameters that have been used so far
+			// to prevent duplicate parameters in input and to ensure that
+			// all required parameters have been parsed
+			var parametersUsed = new HashSet<Parameter>();
+
+			bool TryAddParameter (Parameter parameter, object value)
+			{
+				if (parametersUsed.Contains(parameter)) return false; // Duplicate parameter
+
+				// Find the index in the arguments array of this parameter, and set its value
+				args[mParameterIndexes[parameter]] = value;
+				parametersUsed.Add(parameter);
+
+				return true;
+			}
+
+			// A sentinel value to keep track of whether or not options can be entered.
+			// The parser can be forced to no longer accept options when '--' is found
+			bool canAcceptOptions = true;
+
+			// The index of the current positional argument to be parsed and filled in
+			int positionalIndex = 0; 
+
+			// Attempt to parse parameters until all input has been consumed
+			while (argInput.Length > 0)
+			{
+				argInput.TrimWhitespace();
+				if (argInput.Length == 0)
+				{
+					if (!AllSatisfied(parametersUsed)) return false; // Reached EOL, but haven't found all parameters
+					else break; // All required arguments satisfied, now break
+				}
+
+				// Parse switches and flags
+				if (argInput[0] == '-' && canAcceptOptions)
+				{
+					// Found a flag, switch, or end-of-options term ('--')
+
+					if (argInput.Length < 2) return false; // Invalid, possible cases are -SHORTNAME, --LONGNAME, or end-of-options ('--')
+					argInput.Claim(1); // Claim first '-'
+
+					if (argInput[0] == '-')
+					{
+						argInput.Claim(1); // Claim second '-'
+
+						if (char.IsWhiteSpace(argInput[0])) // Matches "--[WHITESPACE...]", i.e. the end-of-options symbol
+						{
+							canAcceptOptions = false;
+						}
+						else
+						{
+							// Long option form, i.e. --foo or --foo-bar
+							// Attempt to match one of the long options
+							if (!TryParseLongOption(argInput, out var parameter, out object value)) return false; // Failed to parse long option
+
+							if (!TryAddParameter(parameter, value)) return false; // Duplicate parameter
+						}
+					}
+					else
+					{
+						// Only one dash present, this is a short options symbol, and must be handled appropriately
+						if (!TryParseShortOptions(argInput, out Parameter[] parameters, out object[] values)) return false; // Failed to parse short options
+
+						for (int i = 0; i < parameters.Length; i++)
+							if (!TryAddParameter(parameters[i], values[i])) return false; // Duplicate parameter
+					}
+				}
+				else
+				{
+					// Not a switch or a flag, attempt to parse a positional
+					if (positionalIndex >= mPositionals.Count) return false; // Unexpected argument
+
+					var positionalParameter = mPositionals[positionalIndex];
+					if (!positionalParameter.Parser.TryParse(argInput, out var value)) return false; // Failed to parse positional parameter
+					if (!TryAddParameter(positionalParameter, value)) return false; // Duplicate parameter?
+					positionalIndex++;
+				}
+			}
+
+			if (!AllSatisfied(parametersUsed)) return false; // Not all required arguments satisfied
+
+			// Parameters with an unassigned default value:
+			//	Must ensure that these are assigned their default value
+			//
+			// All other parameters:
+			//	Must ensure that they get assigned default(T) corresponding to their type, T.
+			//	This will also ensure that unassigned flag parameters get assigned 'false'
+			foreach (var param in mNonPositionals)
+			{	
+				if (!parametersUsed.Contains(param))
+				{
+					object value;
+					if (param.DefaultValue != null) value = param.DefaultValue;
+					else
+					{
+						// Get default value of type
+						if (param.FieldType.IsValueType && Nullable.GetUnderlyingType(param.FieldType) == null)
+							value = Activator.CreateInstance(param.FieldType);
+						else value = null;
+					}
+
+					args[mParameterIndexes[param]] = value;
+				}
+			}
+
+			arguments = args;
+
+			return true;
 		}
 
 		/// <summary>
@@ -351,7 +638,7 @@ namespace Cronyx.Console.Parsing
 				for (int i = 0; i < pair.Value.Count; i++)
 					if (i == pair.Value.Count - 1) argNamesBuilder.Append(pair.Value[i].MetaVariable);
 					else argNamesBuilder.Append($"{pair.Value[i].MetaVariable}, ");
-				formatGroup.Add(new List<string> { argNamesBuilder.ToString(), GetFormattedName(pair.Key), pair.Value[0].Parser.GetFormat() });
+				formatGroup.Add(new List<string> { argNamesBuilder.ToString(), GetTypeName(pair.Key), pair.Value[0].Parser.GetFormat() });
 			};
 
 			// Order the format group so that the arguments with complex format come first
@@ -401,7 +688,7 @@ namespace Cronyx.Console.Parsing
 				var middleColAlignment = -(MaxLength(formatGroup.Select(x => x[1])) + padding23);
 
 				// Display each row
-				var format = $"{{0, {leftColAlignment}}}{{1, {middleColAlignment}}}";
+				var format = $"{{0, {leftColAlignment}}}{{1, {middleColAlignment}}}{{2}}";
 				foreach (var row in formatGroup)
 				{
 					sb.Append(' ', indent); // Indent text

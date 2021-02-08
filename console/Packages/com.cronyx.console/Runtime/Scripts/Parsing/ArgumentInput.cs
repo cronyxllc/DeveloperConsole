@@ -21,6 +21,12 @@ namespace Cronyx.Console.Parsing
 
 		public void Claim(int count) => mInput.Remove(0, count);
 
+		public bool Match (string token, StringComparison comparison = StringComparison.InvariantCulture)
+		{
+			if (Length < token.Length) return false;
+			return mInput.ToString(0, token.Length).Equals(token);
+		}
+
 		/// <summary>
 		/// Trims all whitespace from the beginning of the input feed.
 		/// </summary>

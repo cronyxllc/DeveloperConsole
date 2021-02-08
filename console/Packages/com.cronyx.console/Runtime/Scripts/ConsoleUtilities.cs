@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Cronyx.Console
 {
-	internal static class StringUtils
+	internal static class ConsoleUtilities
 	{
 		// Stores a list of indices of split locations made by SplitArgs
 		public static List<int> Splits { get; } = new List<int>();
@@ -178,6 +179,11 @@ namespace Cronyx.Console
 			} else formatted = to;
 
 			return isRelative;
+		}
+
+		internal static string GetFormattedName(this MethodInfo method)
+		{
+			return $"{method.DeclaringType.Name}:{method.Name}";
 		}
 	}
 }

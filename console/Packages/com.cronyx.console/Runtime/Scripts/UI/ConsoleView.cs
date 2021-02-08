@@ -248,7 +248,7 @@ namespace Cronyx.Console.UI
 
 			// If the directory is the home path, or a subdirectory, the working directory should display
 			// relative to that path
-			if (StringUtils.TryGetRelative(DeveloperConsole.HomeDirectory, directory, out string formatted))
+			if (ConsoleUtilities.TryGetRelative(DeveloperConsole.HomeDirectory, directory, out string formatted))
 				formatted = Path.Combine("~", formatted);
 
 			InputFieldPrefix.Text = string.Format(mPrefixFormat, formatted);

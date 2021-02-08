@@ -28,6 +28,9 @@ namespace Cronyx.Console.Parsing
 		public virtual string GetFormat() => null;
 
 		public virtual string GetTypeName() => GetType().Name;
+
+		protected ParameterParser<G> GetParser<G>() => Parser.GetParser<G>();
+		protected string GetTypeName<G>() => Parser.GetTypeName<G>();
 	}
 
 	public class IEnumerableParser<T> : ParameterParser<IEnumerable<T>>
@@ -39,7 +42,7 @@ namespace Cronyx.Console.Parsing
 
 		public override string GetFormat()
 		{
-			return $"({Parser.GetParser<T>().GetFormat() ?? "foo"} ...)";	
+			return $"({GetParser<T>().GetFormat() ?? "foo"} ...)";	
 		}
 	}
 }

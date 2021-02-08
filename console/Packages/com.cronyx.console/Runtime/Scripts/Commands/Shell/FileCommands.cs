@@ -104,7 +104,7 @@ namespace Cronyx.Console.Commands.Shell
 				StringBuilder sb = new StringBuilder();
 				foreach (var entry in entries)
 				{
-					StringUtils.TryGetRelative(dirPath, entry, out var formatted);
+					ConsoleUtilities.TryGetRelative(dirPath, entry, out var formatted);
 					if (Directory.Exists(entry)) formatted = $"<color=#{kDirectoryColorHtml}>{formatted}</color>";
 					sb.AppendLine(formatted);
 				}

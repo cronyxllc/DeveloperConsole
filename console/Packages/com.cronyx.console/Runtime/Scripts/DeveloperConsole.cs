@@ -183,7 +183,7 @@ namespace Cronyx.Console
 		///		<code>SplitArgs("'Foo [Bar Baz]'", new[] {('\'', '\''), ('[', ']')}); -> string[] {"Foo [Bar Baz]"}</code>
 		///		<code>SplitArgs("Foo'Bar'", new[] {('\'', '\'')}); -> string[] {"FooBar"}</code>
 		/// </example>
-		public static string[] SplitArgs(string input, (char Beginning, char Ending)[] groupingChars) => StringUtils.SplitArgs(input, groupingChars);
+		public static string[] SplitArgs(string input, (char Beginning, char Ending)[] groupingChars) => ConsoleUtilities.SplitArgs(input, groupingChars);
 
 		/// <summary>
 		/// Splits the given input string into a series of command-line arguments.
@@ -287,11 +287,7 @@ namespace Cronyx.Console
 		// and are marked with the appropriate attribute
 		private void RegisterPersistentCommands ()
 		{
-			// Get a list of all valid persistent commands
-			var commandTypes = GetPersistentCommandTypes();
-
-			// Instantiate/register each command
-			foreach (var commandType in commandTypes)
+			void RegisterTypeCommand (Type commandType)
 			{
 				var commandAttribute = commandType.GetCustomAttribute<PersistentCommandAttribute>();
 
@@ -300,7 +296,7 @@ namespace Cronyx.Console
 				{
 					Logger.Warn($"Type '{commandType.Name}' with attached {nameof(PersistentCommandAttribute)} has a command name, '{commandAttribute.Name},' that has already been taken and will not be registered as a command. " +
 						$"Did you mean to use a different name?");
-					continue;
+					return;
 				}
 
 				// Instantiate the command
@@ -308,13 +304,44 @@ namespace Cronyx.Console
 
 				// If the command is a Unity component, attach it to this object
 				if (typeof(Component).IsAssignableFrom(commandType))
-					command = mComponentCommandsRoot.AddComponent(commandType) as IConsoleCommand; 
+					command = mComponentCommandsRoot.AddComponent(commandType) as IConsoleCommand;
 				// Otherwise use activator
-				else command = Activator.CreateInstance(commandType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, (Binder) null, new object[0], null) as IConsoleCommand;
+				else command = Activator.CreateInstance(commandType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, (Binder)null, new object[0], null) as IConsoleCommand;
 
 				// Register the command
 				Register(commandAttribute.Name, new CommandData(commandType.GetCustomAttribute<EssentialCommandAttribute>() != null, commandAttribute.Description, command));
 			}
+
+			void RegisterMethodCommand (MethodInfo method)
+			{
+				var attribute = method.GetCustomAttribute<PersistentCommandAttribute>();
+
+				// Check that this command name has not been taken
+				if (mCommands.ContainsKey(attribute.Name))
+				{
+					Logger.Warn($"Method '{method.GetFormattedName()}' with attached {nameof(PersistentCommandAttribute)} has a command name, '{attribute.Name},' that has already been taken and will not be registered as a command. " +
+						$"Did you mean to use a different name?");
+					return;
+				}
+
+				// Register the command
+				Register(attribute.Name, new CommandData(method.GetCustomAttribute<EssentialCommandAttribute>() != null, attribute.Description, new MethodCommand(attribute, method)));
+			}
+
+			// Get a list of all valid persistent commands
+			var commandTypes = GetPersistentCommandTypes();
+			var commandMethods = GetPersistentCommandMethods();
+
+			var commandTypesEssential = commandTypes.GroupBy(t => t.GetCustomAttribute<EssentialCommandAttribute>() != null);
+			var commandMethodsEssential = commandMethods.GroupBy(m => m.GetCustomAttribute<EssentialCommandAttribute>() != null);
+
+			// Instantiate/register each command, starting with essential commands
+			foreach (var type in commandTypesEssential.SingleOrDefault(g => g.Key) ?? Enumerable.Empty<Type>()) RegisterTypeCommand(type);
+			foreach (var method in commandMethodsEssential.SingleOrDefault(g => g.Key) ?? Enumerable.Empty<MethodInfo>()) RegisterMethodCommand(method);
+
+			// Non-essential commands
+			foreach (var type in commandTypesEssential.SingleOrDefault(g => !g.Key) ?? Enumerable.Empty<Type>()) RegisterTypeCommand(type);
+			foreach (var method in commandMethodsEssential.SingleOrDefault(g => !g.Key) ?? Enumerable.Empty<MethodInfo>()) RegisterMethodCommand(method);
 		}
 
 		// Return a list of persistent command types, with essential commands sorted first
@@ -371,9 +398,47 @@ namespace Cronyx.Console
 			return validTypes;
 		}
 
+		private static List<MethodInfo> GetPersistentCommandMethods ()
+		{
+			// First find all methods that are marked with the relevant attribute
+			var flaggedMethods = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
+								  from type in assembly.GetTypes()
+								  from method in type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+								  where method.GetCustomAttribute<PersistentCommandAttribute>() != null
+								  select method);
+
+			// Go through the enumeration and find methods that are validly constructed, and log warnings for those that aren't
+			List<MethodInfo> validMethods = new List<MethodInfo>();
+
+			foreach (var method in flaggedMethods)
+			{
+				// Check that the method is static
+				if (!method.IsStatic)
+				{
+					Logger.Warn($"Method '{method.GetFormattedName()}' is marked with a {nameof(PersistentCommandAttribute)}, but it is not static and will not be registered as a command. Did you mean to make this method static?");
+					continue;
+				}
+
+				// Check that the method is not generic
+				if (method.ContainsGenericParameters)
+				{
+					Logger.Warn($"Method '{method.GetFormattedName()}' is marked with a {nameof(PersistentCommandAttribute)}, but it contains open generic parameters and will not be registered as a command. Did you mean for there to be generic parameters associated with this method?");
+					continue;
+				}
+
+				validMethods.Add(method);
+			}
+
+			return validMethods;
+		}
+
 #if UNITY_EDITOR
 		[DidReloadScripts]
-		private static void VerifyTypesOnRecompile() => GetPersistentCommandTypes();
+		private static void VerifyTypesOnRecompile()
+		{
+			var types = GetPersistentCommandTypes();
+			var methods = GetPersistentCommandMethods();
+		}
 #endif
 
 		// Called by ConsoleView when the user has submitted a line to the input field
@@ -384,7 +449,7 @@ namespace Cronyx.Console
 			var splitArgs = SplitArgs(input);
 
 			var command = splitArgs[0].Trim().ToLower();
-			var args = input.Substring(StringUtils.Splits[0]).Trim(); // Get the position of the end of the first argument in the original input string
+			var args = input.Substring(ConsoleUtilities.Splits[0]).Trim(); // Get the position of the end of the first argument in the original input string
 
 			// Attempt to match entered command with a command instance
 			foreach (var cmdPair in mCommands)
@@ -440,6 +505,12 @@ namespace Cronyx.Console
 			var text = mUI.CreateTextEntry();
 			text.Text = message.ToString();
 			text.TextColor = color;
+		}
+
+		[PersistentCommand("test")]
+		public static void Test (string x)
+		{
+			DeveloperConsole.LogError("THIS IS COOL");
 		}
 	}
 }

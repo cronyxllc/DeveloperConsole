@@ -10,7 +10,7 @@ namespace Cronyx.Console.Commands
 	/// Apply to a command to indicate that it is built-in and cannot be unregistered.
 	/// Reserved for internal use only.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class,
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method,
 		AllowMultiple = false,
 		Inherited = false)]
 	internal class EssentialCommandAttribute : Attribute { }

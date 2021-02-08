@@ -30,6 +30,7 @@ namespace Cronyx.Console.Parsing
 
 		public SwitchAttribute(char shortName)
 		{
+			if (char.IsWhiteSpace(shortName)) throw new ArgumentException(nameof(shortName));
 			mShortName = shortName;
 		}
 	}

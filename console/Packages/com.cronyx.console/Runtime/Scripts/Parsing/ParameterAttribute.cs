@@ -24,7 +24,7 @@ namespace Cronyx.Console.Parsing
 			{
 				if (string.IsNullOrWhiteSpace(value))
 					throw new ArgumentException(nameof(Meta));
-				mMetaVar = value;
+				mMetaVar = value.Trim();
 			}
 		}
 
@@ -54,7 +54,7 @@ namespace Cronyx.Console.Parsing
 			set
 			{
 				if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException(nameof(Name));
-				mName = value;
+				mName = value.Trim();
 			}
 		}
 
@@ -64,7 +64,7 @@ namespace Cronyx.Console.Parsing
 			set
 			{
 				if (string.IsNullOrWhiteSpace(Description)) throw new ArgumentException(nameof(Description));
-				mDescription = value;
+				mDescription = value.Trim();
 			}
 		}
 
@@ -74,6 +74,8 @@ namespace Cronyx.Console.Parsing
 			set
 			{
 				if (value == null) throw new ArgumentException(nameof(Parser));
+				if (!typeof(IParameterParser).IsAssignableFrom(value)) throw new ArgumentException($"{value.Name}: Custom parser must inherit from ParameterParser.");
+				if (value.ContainsGenericParameters) throw new ArgumentException($"{value.Name}: Custom parser must not contain any generic parameters.");
 				mParser = value;
 			}
 		}

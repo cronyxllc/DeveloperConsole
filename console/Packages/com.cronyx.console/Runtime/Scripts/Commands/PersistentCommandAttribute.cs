@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cronyx.Console.Commands
 {
-	[AttributeUsage(AttributeTargets.Class,
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method,
 		AllowMultiple = false,
 		Inherited = false)]
 	public class PersistentCommandAttribute : Attribute
