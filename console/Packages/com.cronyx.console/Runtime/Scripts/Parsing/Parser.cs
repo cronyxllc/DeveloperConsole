@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cronyx.Console.Parsing.Parsers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +10,32 @@ namespace Cronyx.Console.Parsing
 {
 	public class Parser
 	{
+		static Parser()
+		{
+			AddParser(new StringParser());
+		}
+
+		private static readonly (char Beginning, char Ending)[] mGroupingChars
+			= new[]
+			{
+				('(', ')'),
+				('{', '}'),
+				('[', ']')
+			};
+
+		public static IEnumerable<(char Beginning, char Ending)> GroupingChars => mGroupingChars;
+
+		private static char[] mSpecialChars;
+		public static IEnumerable<char> SpecialChars
+		{
+			get
+			{
+				if (mSpecialChars != null) return mSpecialChars;
+				mSpecialChars = mGroupingChars.SelectMany(x => new[] { x.Beginning, x.Ending }).ToArray();
+				return mSpecialChars;
+			}
+		}
+
 		private static Dictionary<Type, IParameterParser> mParsers = new Dictionary<Type, IParameterParser>();
 		private static Dictionary<Type, Type> mGenericParsers = new Dictionary<Type, Type>();
 
@@ -136,6 +163,7 @@ namespace Cronyx.Console.Parsing
 
 				// Fill in default values
 				parameter.ParamType = ParameterType.Positional;
+				parameter.Required = true;
 				parameter.MetaVariable = info.Name;
 
 				// Check to see if an attribute was attached, and attempt to add relevant information

@@ -510,7 +510,7 @@ namespace Cronyx.Console
 		[PersistentCommand("test")]
 		public static void Test (string x)
 		{
-			DeveloperConsole.LogError("THIS IS COOL");
+			DeveloperConsole.LogError($"THIS IS COOL: {x}");
 		}
 	}
 }
