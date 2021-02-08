@@ -32,17 +32,4 @@ namespace Cronyx.Console.Parsing
 		protected ParameterParser<G> GetParser<G>() => Parser.GetParser<G>();
 		protected string GetTypeName<G>() => Parser.GetTypeName<G>();
 	}
-
-	public class IEnumerableParser<T> : ParameterParser<IEnumerable<T>>
-	{
-		public override bool TryParse(ArgumentInput input, out IEnumerable<T> result)
-		{
-			throw new NotImplementedException();
-		}
-
-		public override string GetFormat()
-		{
-			return $"({GetParser<T>().GetFormat() ?? "foo"} ...)";	
-		}
-	}
 }

@@ -517,5 +517,15 @@ namespace Cronyx.Console
 		{
 			DeveloperConsole.LogError($"Alpha: {alpha}, Beta: {beta}, Gamma: {gamma}");
 		}
+
+		[PersistentCommand("testlist")]
+		public static void TestList (
+			[Positional(Min = 1, Max = 3)] IEnumerable<IEnumerable<string>> strings
+			)
+		{
+			foreach (var s in strings)
+				foreach (var e in s)
+					DeveloperConsole.LogError(e); 
+		}
 	}
 }

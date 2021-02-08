@@ -14,6 +14,8 @@ namespace Cronyx.Console.Parsing
 		static Parser()
 		{
 			AddParser(new StringParser());
+
+			BindGenericParser(typeof(IEnumerable<>), typeof(IEnumerableParser<>));
 		}
 
 		private static readonly (char Beginning, char Ending)[] mGroupingChars
@@ -36,6 +38,7 @@ namespace Cronyx.Console.Parsing
 
 				// Add additional special characters here:
 				mSpecialChars.Add(':'); // colon ':': for dictionary parsing
+				mSpecialChars.Add(','); // comma ',': for any kind of collection (often an optional element seperator)
 
 				return mSpecialChars;
 			}
@@ -52,7 +55,7 @@ namespace Cronyx.Console.Parsing
 			mParsers[parseType] = parser;
 		}
 
-		public static void AddGenericParser(Type genericTypeDefinition, Type parserType)
+		public static void BindGenericParser(Type genericTypeDefinition, Type parserType)
 		{
 			if (genericTypeDefinition == null) throw new ArgumentNullException(nameof(genericTypeDefinition));
 			if (parserType == null) throw new ArgumentNullException(nameof(parserType));
@@ -631,7 +634,7 @@ namespace Cronyx.Console.Parsing
 		public string CalculateHelp (string commandName)
 		{
 			const int indent = 4; // number of spaces in a single indent
-			const int padding12 = 4; // padding between console columns 1 and 2
+			const int padding12 = 8; // padding between console columns 1 and 2
 			const int padding23 = 8; // padding between console columns 2 and 4 (in the parameter format section)
 
 			int MaxLength(IEnumerable<string> strings) => strings.Max(s => s?.Length ?? 0);
