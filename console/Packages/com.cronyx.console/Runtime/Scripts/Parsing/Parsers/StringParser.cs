@@ -29,7 +29,7 @@ namespace Cronyx.Console.Parsing.Parsers
 			if (input[0] == '\'') quoteChar = '\'';
 			else if (input[0] == '"') quoteChar = '"';
 
-			if (quoteChar != null) input.Claim(1); // Claim the quote character, if it was found
+			if (quoteChar != null) input.Claim(); // Claim the quote character, if it was found
 
 			// Begin scanning for the string
 			while (input.Length > 0)
@@ -44,30 +44,18 @@ namespace Cronyx.Console.Parsing.Parsers
 						continue;
 					} else if (input[0] == quoteChar)
 					{
-						input.Claim(1); // Claim end-quote
+						input.Claim(); // Claim end-quote
 						break;
 					}
 				} else
 				{
 					if (char.IsWhiteSpace(input[0])) break; // Found whitespace not inside quotes
-					else
-					{
-						// Search for special character
-						bool foundSpecialChar = false;
-						foreach (var c in Parser.SpecialChars)
-							if (input[0] == c) {
-								foundSpecialChar = true;
-								break;
-							};
-						if (foundSpecialChar) break; // Found special character not inside quotes, stop
-					}
+					else if (Parser.IsSpecial(input[0])) break; // Special character not inside quotes, must stop
 				}
 
 				mBuilder.Append(input[0]);
-				input.Claim(1);
+				input.Claim();
 			}
-
-			input.TrimWhitespace(); // Trim any trailing whitespace, if needed
 
 			result = mBuilder.ToString();
 			return true;

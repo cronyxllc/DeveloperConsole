@@ -14,8 +14,41 @@ namespace Cronyx.Console.Parsing
 		static Parser()
 		{
 			AddParser(new StringParser());
+			AddParser(new CharParser());
+
+			// Integral types
+			AddParser(new IntegralParser<sbyte>("sbyte", x => sbyte.Parse(x)));
+			AddParser(new IntegralParser<byte>("byte", x => byte.Parse(x)));
+			AddParser(new IntegralParser<short>("short", x => short.Parse(x)));
+			AddParser(new IntegralParser<ushort>("ushort", x => ushort.Parse(x)));
+			AddParser(new IntegralParser<int>("int", x => int.Parse(x)));
+			AddParser(new IntegralParser<uint>("uint", x => uint.Parse(x)));
+			AddParser(new IntegralParser<long>("long", x => long.Parse(x)));
+			AddParser(new IntegralParser<ulong>("ulong", x => ulong.Parse(x)));
+			
+			// Floating point types
+			AddParser(new FloatingParser<float>("float", x => float.Parse(x)));
+			AddParser(new FloatingParser<double>("double", x => double.Parse(x)));
+			AddParser(new FloatingParser<decimal>("decimal", x => decimal.Parse(x)));
+
+			AddParser(new BoolParser());
 
 			BindGenericParser(typeof(IEnumerable<>), typeof(IEnumerableParser<>));
+			BindGenericParser(typeof(List<>), typeof(ListParser<>));
+			BindGenericParser(typeof(IList<>), typeof(IListParser<>));
+			BindGenericParser(typeof(IReadOnlyList<>), typeof(IReadOnlyListParser<>));
+			BindGenericParser(typeof(ICollection<>), typeof(ICollectionParaser<>));
+			BindGenericParser(typeof(IReadOnlyCollection<>), typeof(IReadOnlyCollectionParser<>));
+			BindGenericParser(typeof(Queue<>), typeof(QueueParser<>));
+			BindGenericParser(typeof(Stack<>), typeof(StackParser<>));
+			BindGenericParser(typeof(HashSet<>), typeof(HashSetParser<>));
+			BindGenericParser(typeof(ISet<>), typeof(ISetParser<>));
+
+			// Dictionaries and key-value pairs
+			BindGenericParser(typeof(KeyValuePair<,>), typeof(KeyValuePairParser<,>));
+			BindGenericParser(typeof(Dictionary<,>), typeof(DictionaryParser<,>));
+			BindGenericParser(typeof(IDictionary<,>), typeof(IDictionaryParser<,>));
+			BindGenericParser(typeof(IReadOnlyDictionary<,>), typeof(IReadOnlyDictionaryParser<,>));
 		}
 
 		private static readonly (char Beginning, char Ending)[] mGroupingChars
@@ -42,6 +75,13 @@ namespace Cronyx.Console.Parsing
 
 				return mSpecialChars;
 			}
+		}
+
+		public static bool IsSpecial (char c)
+		{
+			foreach (var ch in SpecialChars)
+				if (c == ch) return true;
+			return false;
 		}
 
 		private static Dictionary<Type, IParameterParser> mParsers = new Dictionary<Type, IParameterParser>();
@@ -94,23 +134,33 @@ namespace Cronyx.Console.Parsing
 			// No concrete parser has been instantiated for this type,
 			// let's see if we can generate one using generic type definitions and reflection
 
-			if (parseType.ContainsGenericParameters) Throw(); // Type is an unbounded generic type, we cannot do anything with this as generic arguments are unknown
-			if (!parseType.IsGenericType) Throw(); // Check that type is indeed a generic type, such as List<int>, for which a parser can be generated
+			Type constructedParserType;
 
-			var genericTypeDefinition = parseType.GetGenericTypeDefinition(); // Get the open generic type definition, such as List<> or IEnumerable<>
-			var typeArguments = parseType.GenericTypeArguments; // Get the array of type arguments. For List<int>, this would return [ System.Int32 ]
+			if (parseType.IsArray && parseType.GetArrayRank() == 1)
+			{
+				// Special case for parse types that are 1D arrays
+				constructedParserType = typeof(ArrayParser<>).MakeGenericType(new[] { parseType.GetElementType() });
+			} else
+			{
+				if (parseType.ContainsGenericParameters) Throw(); // Type is an unbounded generic type, we cannot do anything with this as generic arguments are unknown
+				if (!parseType.IsGenericType) Throw(); // Check that type is indeed a generic type, such as List<int>, for which a parser can be generated
 
-			if (!mGenericParsers.ContainsKey(genericTypeDefinition)) Throw(); // No corresponding parser set for this generic type definition
-			var genericParserType = mGenericParsers[genericTypeDefinition];
+				var genericTypeDefinition = parseType.GetGenericTypeDefinition(); // Get the open generic type definition, such as List<> or IEnumerable<>
+				var typeArguments = parseType.GenericTypeArguments; // Get the array of type arguments. For List<int>, this would return [ System.Int32 ]
 
-			// Construct the new parser type by plugging in the generic type arguments
-			var constructedParserType = genericParserType.MakeGenericType(typeArguments);
+				if (!mGenericParsers.ContainsKey(genericTypeDefinition)) Throw(); // No corresponding parser set for this generic type definition
+				var genericParserType = mGenericParsers[genericTypeDefinition];
+
+				// Construct the new parser type by plugging in the generic type arguments
+				constructedParserType = genericParserType.MakeGenericType(typeArguments);
+			}
 
 			// Create an instance of this parser
 			var parser = Activator.CreateInstance(constructedParserType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, (Binder)null, new object[0], null) as IParameterParser;
 
 			// Add this parser to the dictionary of other parsers we do not have to repeat this process for the same generic type in the future
-			AddParser(constructedParserType, parser);
+			AddParser(parseType, parser);
+
 			return parser;
 		}
 
@@ -132,7 +182,7 @@ namespace Cronyx.Console.Parsing
 		private class Parameter
 		{
 			public ParameterType ParamType { get; private set; }
-			public string Name { get; private set; }
+			public string LongName { get; private set; }
 			public string Description { get; private set; }
 			public int Min { get; private set; } = -1;
 			public int Max { get; private set; } = -1;
@@ -170,7 +220,7 @@ namespace Cronyx.Console.Parsing
 				parameter.FieldType = info.ParameterType;
 
 				// Fill in default values
-				parameter.Name = info.Name;
+				parameter.LongName = info.Name;
 				parameter.ParamType = ParameterType.Positional;
 				parameter.Required = true;
 				parameter.MetaVariable = info.Name;
@@ -179,10 +229,9 @@ namespace Cronyx.Console.Parsing
 				var parameterAttribute = info.GetCustomAttribute<ParameterAttribute>();
 				if (parameterAttribute == null) return parameter; // No attribute attached, nothing more we can infer about this parameter
 
-				if (parameterAttribute.Name != null)
+				if (parameterAttribute.Meta != null)
 				{
-					parameter.Name = parameterAttribute.Name;
-					parameter.MetaVariable = parameterAttribute.Name;
+					parameter.MetaVariable = parameterAttribute.Meta;
 				}
 
 				// Handle min and max elements.
@@ -200,12 +249,16 @@ namespace Cronyx.Console.Parsing
 				if (parameterAttribute is SwitchAttribute switchAttribute)
 				{
 					// Handle logic for switch attributes
+					parameter.LongName = switchAttribute.LongName;
 					parameter.ShortName = switchAttribute.ShortName;
 
 					// Check if this is a switch or a flag (a special kind of switch)
 					// Flags can only be applied to boolean arguments
 					if (info.ParameterType == typeof(bool) && switchAttribute.Flag)
+					{
 						parameter.ParamType = ParameterType.Flag;
+						parameter.Required = false;
+					}
 					else
 					{
 						// This is a switch, not a flag
@@ -261,21 +314,12 @@ namespace Cronyx.Console.Parsing
 			{
 				var param = Parameter.FromParameterInfo(arg);
 
-				if (param.ParamType == ParameterType.Positional && parser.mNonPositionals.Count > 0)
+				if (param.LongName != null)
 				{
-					// Cannot add positional argument when there are already optionals
-					throw new InvalidOperationException($"Positional parameter {arg.Name} in method {info.Name} in type {info.DeclaringType.Name} may not come after any switch/flag arguments.");
+					if (names.Contains(param.LongName))
+						throw new InvalidOperationException($"Multiple switch parameters found with the same long name: {param.LongName}. Each switch parameter must have a distinct long name.");
+					names.Add(param.LongName);
 				}
-
-				if (param.ParamType == ParameterType.Positional && param.Required && parser.mPositionals.Any(p => !p.Required))
-				{
-					// Cannot add non-optional positional arguments when there are already optional positional arguments
-					throw new InvalidOperationException($"Required positional parameter {arg.Name} in method {info.Name} in type {info.DeclaringType.Name} may not come after any optional positional arguments.");
-				}
-
-				if (names.Contains(param.Name))
-					throw new InvalidOperationException($"Multiple parameters found with the same name: {param.Name}. Each parameter must have a distinct name.");
-				names.Add(param.Name);
 
 				if (metavars.Contains(param.MetaVariable))
 					throw new InvalidOperationException($"Multiple parameters found with the same metavariable: {param.MetaVariable}. Each parameter must have a distinct metavariable.");
@@ -305,7 +349,17 @@ namespace Cronyx.Console.Parsing
 		private void Add (Parameter parameter)
 		{
 			if (parameter.ParamType == ParameterType.Positional)
-				mPositionals.Add(parameter);
+			{
+				if (!parameter.Required || mPositionals.Count == 0) mPositionals.Add(parameter);
+				else
+				{
+					// This is a required positional parameter, and should be placed before all optionals
+					int insertionIndex = mPositionals.Count;
+					for (int i = mPositionals.Count - 1; i >= 0; i--)
+						if (!mPositionals[i].Required) insertionIndex = i;
+					mPositionals.Insert(insertionIndex, parameter);
+				}
+			}
 			else mNonPositionals.Add(parameter);
 		}
 
@@ -322,10 +376,10 @@ namespace Cronyx.Console.Parsing
 			value = null;
 			foreach (var param in mNonPositionals)
 			{
-				if (input.Match(param.Name))
+				if (input.Match(param.LongName))
 				{
 					// Found a parameter with this long option name
-					input.Claim(param.Name.Length); // Claim the parameter name
+					input.Claim(param.LongName.Length); // Claim the parameter name
 
 					// If this is a flag parameter, there should be whitespace or EOL appearing immediately afterwards this parameter.
 					if (param.ParamType == ParameterType.Flag)
@@ -339,7 +393,7 @@ namespace Cronyx.Console.Parsing
 						// Not a flag parameter, should be of the form --OPTION ARG or --OPTION=ARG
 						if (input.Length == 0) return false; // Edge case
 
-						if (input[0] == '=') input.Claim(1); // Claim optional equals
+						if (input[0] == '=') input.Claim(); // Claim optional equals
 						else if (char.IsWhiteSpace(input[0])) input.TrimWhitespace(); // Trim whitespace between long option and value
 						else return false; // There MUST be an '=' character or whitespace between a long option and its value
 
@@ -389,7 +443,7 @@ namespace Cronyx.Console.Parsing
 				//	[OPTION][ARGUMENT]
 				//	[OPTION][WHITESPACE][ARGUMENT]
 
-				input.Claim(1);
+				input.Claim();
 				input.TrimWhitespace(); // Trim whitespace between option and value if necessary
 				if (input.Length == 0) return false; // Edge case for EOL
 
@@ -414,7 +468,7 @@ namespace Cronyx.Console.Parsing
 					parametersList.Add(current);
 					valuesList.Add(true);
 
-					input.Claim(1); // Consume character representing this option
+					input.Claim(); // Consume character representing this option
 					if (input.Length == 0 || char.IsWhiteSpace(input[0])) current = null; // Handle EOL or whitespace
 					else
 					{
@@ -476,6 +530,37 @@ namespace Cronyx.Console.Parsing
 				return true;
 			}
 
+			bool VerifySwitch (bool canAcceptOptions)
+			{
+				// Switchs (such as -f or --file) can often be confused with negative numeric positional
+				// arguments -6.05 or -.8
+				//
+				// This function serves to disambiguate this case.
+				// If this function returns true, the parser should treat the incoming input as a switch,
+				// if it returns false, it should treat it as a positional argument.
+
+				if (argInput[0] == '-' && canAcceptOptions)
+				{
+					if (argInput.Length >= 2)
+					{
+						if (char.IsDigit(argInput[1]) || argInput[1] == '.')
+						{
+							foreach (var param in mNonPositionals)
+							{
+								// Check if there are any switches of the form -0, -1, -2, ... -9, or -.
+								if (param.ShortName == argInput[1]) return true;
+							}
+							return false;
+						}
+						else if (char.IsWhiteSpace(argInput[1])) return false;
+						else return true;
+					}
+					else if (argInput.Length == 1) return false; // Single dash, not a switch
+					else return true;
+				}
+				else return false;
+			}
+
 			// A sentinel value to keep track of whether or not options can be entered.
 			// The parser can be forced to no longer accept options when '--' is found
 			bool canAcceptOptions = true;
@@ -494,18 +579,18 @@ namespace Cronyx.Console.Parsing
 				}
 
 				// Parse switches and flags
-				if (argInput[0] == '-' && canAcceptOptions)
+				if (VerifySwitch(canAcceptOptions))
 				{
 					// Found a flag, switch, or end-of-options term ('--')
 
 					if (argInput.Length < 2) return false; // Invalid, possible cases are -SHORTNAME, --LONGNAME, or end-of-options ('--')
-					argInput.Claim(1); // Claim first '-'
+					argInput.Claim(); // Claim first '-'
 
 					if (argInput[0] == '-')
 					{
-						argInput.Claim(1); // Claim second '-'
+						argInput.Claim(); // Claim second '-'
 
-						if (char.IsWhiteSpace(argInput[0])) // Matches "--[WHITESPACE...]", i.e. the end-of-options symbol
+						if (argInput.Length == 0 || char.IsWhiteSpace(argInput[0])) // Matches "--[WHITESPACE...]" or "--[EOL]", i.e. the end-of-options symbol
 						{
 							canAcceptOptions = false;
 						}
@@ -614,7 +699,7 @@ namespace Cronyx.Console.Parsing
 			// Now do all non-positionals
 			// Organize by required parameters first
 			var nonPositionalsSorted = mNonPositionals.OrderByDescending(p => p.Required);
-			foreach (var param in mNonPositionals)
+			foreach (var param in nonPositionalsSorted)
 			{
 				if (param.ParamType == ParameterType.Flag)
 					// Flags
@@ -642,8 +727,8 @@ namespace Cronyx.Console.Parsing
 			string ParameterNames (Parameter param)
 			{
 				if (param.ParamType == ParameterType.Positional) return param.MetaVariable;
-				else if (string.IsNullOrEmpty(param.Name)) return $"-{param.ShortName}";
-				else return $"-{param.ShortName}, --{param.Name}";
+				else if (string.IsNullOrEmpty(param.LongName)) return $"-{param.ShortName}";
+				else return $"-{param.ShortName}, --{param.LongName}";
 			}
 
 			StringBuilder sb = new StringBuilder()

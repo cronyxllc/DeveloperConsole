@@ -512,7 +512,7 @@ namespace Cronyx.Console
 		public static void Test (
 			[Positional(Optional = true, Meta = "A")] string alpha,
 			[Positional(Optional = true, Meta = "G")] string gamma,
-			[Switch('b', Name = "beta", Description = "A string input that you can use", Meta = "B")] string beta
+			[Switch('b', LongName = "beta", Description = "A string input that you can use", Meta = "B")] string beta
 			)
 		{
 			DeveloperConsole.LogError($"Alpha: {alpha}, Beta: {beta}, Gamma: {gamma}");
@@ -520,12 +520,14 @@ namespace Cronyx.Console
 
 		[PersistentCommand("testlist")]
 		public static void TestList (
-			[Positional(Min = 1, Max = 3)] IEnumerable<IEnumerable<string>> strings
+			[Switch('a', LongName = "first flag", Description = "flag1")] bool flag1,
+			[Switch('b', LongName = "flag two", Description = "flag2")] bool flag2,
+			[Switch('c', LongName = "third flag yay", Description = "flag3", Required = true)] float variable=5f
 			)
 		{
-			foreach (var s in strings)
-				foreach (var e in s)
-					DeveloperConsole.LogError(e); 
+			Log($"{nameof(flag1)}: {flag1}");
+			Log($"{nameof(flag2)}: {flag2}");
+			Log(variable);
 		}
 	}
 }

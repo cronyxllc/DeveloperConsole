@@ -19,7 +19,7 @@ namespace Cronyx.Console.Parsing
 			mInput = new StringBuilder(input);
 		}
 
-		public void Claim(int count) => mInput.Remove(0, count);
+		public void Claim(int count=1) => mInput.Remove(0, count);
 
 		public bool Match (string token, StringComparison comparison = StringComparison.InvariantCulture)
 		{
@@ -33,7 +33,7 @@ namespace Cronyx.Console.Parsing
 		public void TrimWhitespace ()
 		{
 			while (Length > 0 && char.IsWhiteSpace(mInput[0]))
-				Claim(1);
+				Claim();
 		}
 
 		public override string ToString() => mInput.ToString();

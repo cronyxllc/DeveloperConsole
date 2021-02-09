@@ -26,10 +26,52 @@ namespace Cronyx.Console.Parsing
 		public abstract bool TryParse(ArgumentInput input, out T result);
 
 		public virtual string GetFormat() => null;
-
-		public virtual string GetTypeName() => GetType().Name;
+		public virtual string GetTypeName() => typeof(T).Name;
 
 		protected ParameterParser<G> GetParser<G>() => Parser.GetParser<G>();
 		protected string GetTypeName<G>() => Parser.GetTypeName<G>();
+	}
+
+	/// <summary>
+	/// A <see cref="ParameterParser{T}"/> for values of type <typeparamref name="TAlias"/> that uses the parser for <typeparamref name="TBase"/>,
+	/// provided there is way to convert from values of type <typeparamref name="TBase"/> to <typeparamref name="TAlias"/>.
+	/// </summary>
+	/// <typeparam name="TBase"></typeparam>
+	/// <typeparam name="TAlias"></typeparam>
+	public abstract class AliasParser<TBase, TAlias> : ParameterParser<TAlias>
+	{
+		private ParameterParser<TBase> mParser;
+		protected ParameterParser<TBase> BaseParser
+		{
+			get
+			{
+				if (mParser != null) return mParser;
+				mParser = GetParser<TBase>();
+				return mParser;
+			}
+		}
+
+		public override bool TryParse(ArgumentInput input, out TAlias result)
+		{
+			result = default;
+			if (!BaseParser.TryParse(input, out TBase baseValue)) return false;
+			result = Convert(baseValue);
+			return true;
+		}
+
+		public abstract TAlias Convert (TBase baseValue);
+
+		public override string GetFormat() => BaseParser.GetFormat();
+	}
+
+	/// <summary>
+	/// A special kind of <see cref="AliasParser{TBase, TAlias}"/> that supports covariant generic parameters,
+	/// that is, when <typeparamref name="TBase"/> is a subclass of <typeparamref name="TAlias"/>.
+	/// </summary>
+	/// <typeparam name="TBase"></typeparam>
+	/// <typeparam name="TAlias"></typeparam>
+	public abstract class CovariantParser <TBase, TAlias> : AliasParser<TBase, TAlias> where TBase : TAlias
+	{
+		public override TAlias Convert(TBase baseValue) => baseValue;
 	}
 }
