@@ -89,11 +89,12 @@ namespace Cronyx.Console.Parsing
 		/// <para>
 		/// If specified, the following restrictions apply to the parser type:
 		/// <list type="bullet">
+		/// <item>The type may not be null.</item>
 		/// <item>The type must be a subclass of <see cref="ParameterParser{T}"/>.</item>
-		/// <item>The type cannot be an open generic type. For instance, <c>typeof(IEnumerableParser&lt;string&gt;)</c> would be a valid parser type, but <see cref="IEnumerableParser{T}"/> wouldn't.</item>
+		/// <item>The type cannot be an open generic type. For instance, <c>typeof(IEnumerableParser&lt;string&gt;)</c> would be a valid parser type, but <c>typeof(<see cref="IEnumerableParser{T}"/>)</c> wouldn't.</item>
 		/// <item>The type cannot represent an abstract <see cref="ParameterParser{T}"/>. That is, it must be instantiable.</item>
 		/// <item>The parser specified by the type must produce a result (in its <see cref="ParameterParser{T}.TryParse(ArgumentInput, out T)"/> method) that exactly matches the parameter type this attribute is applied to, or a subclass of that type.
-		/// For instance, if this attribute is applied to a parameter whose type is <c>IEnumerableParser&lt;string&gt;</c>, <see cref="Parser"/> must produce
+		/// For instance, if this attribute is applied to a parameter whose type is <c>IEnumerable&lt;string&gt;</c>, the parser must produce
 		/// a <c>IEnumerableParser&lt;string&gt;</c> object or a relevant subclass, such as <c>List&lt;string&gt;</c>.</item>
 		/// </list>
 		/// </para>

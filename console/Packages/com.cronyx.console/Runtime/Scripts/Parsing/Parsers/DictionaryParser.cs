@@ -14,7 +14,7 @@ namespace Cronyx.Console.Parsing.Parsers
 	/// </remarks>
 	public class DictionaryParser<TKey, TValue> : ParameterParser<Dictionary<TKey, TValue>>
 	{
-		private class KVIEnumerableParser: IEnumerableParser<KeyValuePair<TKey, TValue>>
+		private class KVIEnumerableParser : IEnumerableParser<KeyValuePair<TKey, TValue>>
 		{
 			protected override (char Beginning, char End)[] GroupingChars => new[] { ('{', '}') };
 		}

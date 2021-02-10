@@ -35,5 +35,10 @@ namespace Cronyx.Console.Parsing.Parsers
 
 		public override string GetFormat() => $"{GetParser<TKey>().GetFormat() ?? "key"}: {GetParser<TValue>().GetFormat() ?? "value"}";
 		public override string GetTypeName() => $"KeyValuePair<{GetTypeName<TKey>()},{GetTypeName<TValue>()}>";
+
+		public KeyValuePairParser ()
+		{
+			Parser.AddSpecialChar(':'); // Add colon special char
+		}
 	}
 }

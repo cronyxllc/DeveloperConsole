@@ -49,40 +49,15 @@ namespace Cronyx.Console.Parsing
 			BindGenericParser(typeof(Dictionary<,>), typeof(DictionaryParser<,>));
 			BindGenericParser(typeof(IDictionary<,>), typeof(IDictionaryParser<,>));
 			BindGenericParser(typeof(IReadOnlyDictionary<,>), typeof(IReadOnlyDictionaryParser<,>));
+
+			AddParser(new StupidTypeParser());
 		}
 
-		private static readonly (char Beginning, char Ending)[] mGroupingChars
-			= new[]
-			{
-				('(', ')'),
-				('{', '}'),
-				('[', ']')
-			};
+		private static ISet<char> mSpecialChars = new HashSet<char>();
+		public static IEnumerable<char> SpecialChars => mSpecialChars;
 
-		public static IEnumerable<(char Beginning, char Ending)> GroupingChars => mGroupingChars;
-
-		private static List<char> mSpecialChars;
-		public static IEnumerable<char> SpecialChars
-		{
-			get
-			{
-				if (mSpecialChars != null) return mSpecialChars;
-				mSpecialChars = mGroupingChars.SelectMany(x => new[] { x.Beginning, x.Ending }).ToList();
-
-				// Add additional special characters here:
-				mSpecialChars.Add(':'); // colon ':': for dictionary parsing
-				mSpecialChars.Add(','); // comma ',': for any kind of collection (often an optional element seperator)
-
-				return mSpecialChars;
-			}
-		}
-
-		public static bool IsSpecial (char c)
-		{
-			foreach (var ch in SpecialChars)
-				if (c == ch) return true;
-			return false;
-		}
+		public static void AddSpecialChar(char c) => mSpecialChars.Add(c);
+		public static bool IsSpecial(char c) => mSpecialChars.Contains(c);
 
 		private static Dictionary<Type, IParameterParser> mParsers = new Dictionary<Type, IParameterParser>();
 		private static Dictionary<Type, Type> mGenericParsers = new Dictionary<Type, Type>();
@@ -125,7 +100,7 @@ namespace Cronyx.Console.Parsing
 		// Type can be a concrete type, such as int or float, for which an explicit parser has been declared,
 		// or it can be a closed generic type, such as List<int> or HashSet<float>, for which no explicit parser has been declared
 		// but instead can be generated from an existing generic parser definition
-		private static IParameterParser GetParser (Type parseType)
+		internal static IParameterParser GetParser (Type parseType)
 		{
 			if (mParsers.ContainsKey(parseType)) return mParsers[parseType];
 
@@ -740,7 +715,6 @@ namespace Cronyx.Console.Parsing
 			//	(*)	Format, i.e. the types of all parameters and any format help for nested types
 			//	(*)	Mandatory Parameters, i.e. a list of and description of any mandatory parameters
 			//	(*)	Optional Parameters, i.e. a list of and description of any optional parameters
-			//	(*)	Restrictions, i.e. for IEnumerable fields that have either a min or max, a series of rows showing the minimum/maximum number of items
 			//
 			// Each group will be stored in a list of lists, representing rows and columns
 			// Each inner list represents a single row
@@ -748,7 +722,6 @@ namespace Cronyx.Console.Parsing
 			List<List<string>> formatGroup = new List<List<string>>();
 			List<List<string>> mandatoryGroup = new List<List<string>>();
 			List<List<string>> optionalGroup = new List<List<string>>();
-			List<List<string>> restrictionsGroup = new List<List<string>>();
 
 			// Format group:
 			//	Each row will represent a set of parameters tied to a single type, for instance:
@@ -786,6 +759,44 @@ namespace Cronyx.Console.Parsing
 			// Order the format group so that the arguments with complex format come first
 			formatGroup.Sort((a, b) => string.IsNullOrEmpty(a[2]).CompareTo(string.IsNullOrEmpty(b[2])));
 
+			// Get parameter description for this parameter, including any range restrictions
+			List<List<string>> GetDescription(Parameter parameter)
+			{
+				List<string> rightColumn = new List<string>();
+				if (parameter.Description != null) rightColumn.Add(parameter.Description);
+
+				string description = null;
+				if (parameter.Min < 0 && parameter.Max < 0) description = null; // there are no enumeration restrictions on this parameter
+				else if (parameter.Min == 0 && parameter.Max == 0) description = "May not contain any elements";
+				else if (parameter.Min == parameter.Max)
+				{
+					description = $"May contain {parameter.Min} and only {parameter.Min} element";
+					if (parameter.Min > 1) description += "s"; // Make plural
+				}
+				else if (parameter.Min >= 0 && parameter.Max >= 0)
+					description = $"May have between {parameter.Min} and {parameter.Max} element";
+				else if (parameter.Min >= 0)
+				{
+					description = $"Must have at least {parameter.Min} element";
+					if (parameter.Min > 1 || parameter.Min == 0) description += "s"; // Make plural
+				}
+				else if (parameter.Max >= 0)
+				{
+					description = $"Can have at most {parameter.Max} element";
+					if (parameter.Max > 1 || parameter.Max == 0) description += "s";  // Make plural
+				}
+
+				if (description != null) rightColumn.Add(description);
+
+				var rows = new List<List<string>>();
+				if (rightColumn.Count > 0)
+				{
+					rows.Add(new List<string>() { ParameterNames(parameter), rightColumn[0] });
+					for (int i = 1; i < rightColumn.Count; i++) rows.Add(new List<string>() { string.Empty, rightColumn[i] });
+				}
+				return rows;
+			}
+
 			// Mandatory parameters:
 			//	Each row will designate a mandatory parameter and its description.
 			//	Required positional arguments will come first, followed by required switches
@@ -801,8 +812,7 @@ namespace Cronyx.Console.Parsing
 			foreach (var param in allParams)
 			{
 				if (!param.Required) continue; // No optional parameters here
-				if (string.IsNullOrWhiteSpace(param.Description)) continue; // No description means no readout for this parameter
-				mandatoryGroup.Add(new List<string>() { ParameterNames(param), param.Description });
+				mandatoryGroup.AddRange(GetDescription(param));
 			}
 
 			// Optional parameters:
@@ -810,49 +820,7 @@ namespace Cronyx.Console.Parsing
 			foreach (var param in allParams)
 			{
 				if (param.Required) continue; // No mandatory params here
-				if (string.IsNullOrWhiteSpace(param.Description)) continue; // No description
-				optionalGroup.Add(new List<string>() { ParameterNames(param), param.Description });
-			}
-
-			// Restrictions:
-			//	For IEnumerable parameters for which a range restriction has been placed (using the min/max properties)
-			//	this group will show how many items can be placed into each parameter.
-			//
-			//	Format:
-			//		[METAVARIABLE]		[DESCRIPTION OF RESTRICTION]
-			//
-			//	Example:
-			//		foo					Can have between 0 and 5 items
-			//		bar					Can have at most 5 items
-			//		cat					Must have at least 1 item
-			
-			// Get restriction description for this parameter.
-			// Returns null if there are no restrictions
-			string GetRestrictionDescription (Parameter parameter)
-			{
-				if (parameter.Min < 0 && parameter.Max < 0) return null; // there are no restrictions on this parameter
-
-				if (parameter.Min >= 0 && parameter.Max >= 0)
-					return $"Can have between {parameter.Min} and {parameter.Max} items";
-				else if (parameter.Min >= 0)
-				{
-					var description = $"Must have at least {parameter.Min} item";
-					if (parameter.Min > 1 || parameter.Min == 0) description += "s"; // Make plural
-					return description;
-				} else if (parameter.Max >= 0)
-				{
-					var description = $"Can have at most {parameter.Max} item";
-					if (parameter.Max > 1 || parameter.Max == 0) description += "s";
-					return description;
-				}
-
-				return null;
-			}
-
-			foreach (var param in allParams)
-			{
-				var restriction = GetRestrictionDescription(param);
-				if (restriction != null) restrictionsGroup.Add(new List<string>() { param.MetaVariable, restriction });
+				optionalGroup.AddRange(GetDescription(param));
 			}
 
 			// Calculate column alignment based on the maximum length string appearing in each column
@@ -901,19 +869,6 @@ namespace Cronyx.Console.Parsing
 				
 				// Display each row
 				foreach (var row in optionalGroup)
-				{
-					sb.Append(' ', indent); // Indent text
-					sb.AppendLine(string.Format(parameterFormat, row[0], row[1]));
-				}
-			}
-
-			// Display restrictions group:
-			if (restrictionsGroup.Count > 0)
-			{
-				sb.AppendLine().AppendLine("Restrictions:");
-
-				// Display each row
-				foreach (var row in restrictionsGroup)
 				{
 					sb.Append(' ', indent); // Indent text
 					sb.AppendLine(string.Format(parameterFormat, row[0], row[1]));

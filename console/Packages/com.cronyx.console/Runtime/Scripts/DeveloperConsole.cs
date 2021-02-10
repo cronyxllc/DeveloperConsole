@@ -510,24 +510,20 @@ namespace Cronyx.Console
 
 		[PersistentCommand("test")]
 		public static void Test (
-			[Positional(Optional = true, Meta = "A")] string alpha,
-			[Positional(Optional = true, Meta = "G")] string gamma,
-			[Switch('b', LongName = "beta", Description = "A string input that you can use", Meta = "B")] string beta
 			)
 		{
-			DeveloperConsole.LogError($"Alpha: {alpha}, Beta: {beta}, Gamma: {gamma}");
 		}
 
 		[PersistentCommand("testlist")]
 		public static void TestList (
 			[Switch('a', LongName = "first flag", Description = "flag1")] bool flag1,
 			[Switch('b', LongName = "flag two", Description = "flag2")] bool flag2,
-			[Switch('c', LongName = "third flag yay", Description = "flag3", Required = true)] float variable=5f
+			[Switch('c', LongName = "third flag yay", Required = true, Min = 0, Max = 0)] float[] variable
 			)
 		{
 			Log($"{nameof(flag1)}: {flag1}");
 			Log($"{nameof(flag2)}: {flag2}");
-			Log(variable);
+			foreach (var c in variable) Log(c);
 		}
 	}
 }

@@ -9,6 +9,7 @@ namespace Cronyx.Console.Parsing.Parsers
 {
 	public class IEnumerableParser<T> : ParameterParser<IEnumerable<T>>
 	{
+		protected virtual char Seperator => ',';
 		protected virtual (char Beginning, char End)[] GroupingChars => new[]
 			{
 				('(', ')'),
@@ -57,19 +58,19 @@ namespace Cronyx.Console.Parsing.Parsers
 				{
 					input.Claim(); // Claim end grouping char
 					break; // Finished list of elements
-				} else if (input[0] == ',') return false; // Unexpected seperator
+				} else if (input[0] == Seperator) return false; // Unexpected seperator
 
 				if (!elementParser.TryParse(input, out T element)) return false; // Failed to parse element
-				elements.Add(element); // Failed to add element to the backing type
+				elements.Add(element);
 
 				input.TrimWhitespace(); // Trim any whitespace occuring after element
 
 				if (input.Length == 0) return false; // Unexpected EOL
-				if (input[0] == ',')
+				if (input[0] == Seperator)
 				{
-					input.Claim(); // Claim seperator comma
+					input.Claim(); // Claim seperator
 					input.TrimWhitespace(); // Claim any whitespace occuring after the seperator
-					if (input.Length == 0 || input[0] == ',' || input[0] == endGrouping) return false; // Unexpected EOL, duplicate comma, or trailing comma before grouping char
+					if (input.Length == 0 || input[0] == Seperator || input[0] == endGrouping) return false; // Unexpected EOL, duplicate seperator, or trailing comma before grouping char
 				}
 			}
 
@@ -80,5 +81,12 @@ namespace Cronyx.Console.Parsing.Parsers
 		public override string GetFormat() => $"[{GetParser<T>().GetFormat() ?? "foo bar"} ...]";
 
 		public override string GetTypeName() => $"{nameof(IEnumerable)}<{GetTypeName<T>()}>";
+
+		public IEnumerableParser ()
+		{
+			foreach (var c in GroupingChars.SelectMany(x => new[] { x.Beginning, x.End }))
+				Parser.AddSpecialChar(c);
+			Parser.AddSpecialChar(Seperator);
+		}
 	}
 }
