@@ -49,8 +49,6 @@ namespace Cronyx.Console.Parsing
 			BindGenericParser(typeof(Dictionary<,>), typeof(DictionaryParser<,>));
 			BindGenericParser(typeof(IDictionary<,>), typeof(IDictionaryParser<,>));
 			BindGenericParser(typeof(IReadOnlyDictionary<,>), typeof(IReadOnlyDictionaryParser<,>));
-
-			AddParser(new StupidTypeParser());
 		}
 
 		private static ISet<char> mSpecialChars = new HashSet<char>();

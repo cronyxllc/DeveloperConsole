@@ -142,32 +142,4 @@ namespace Cronyx.Console.Parsing
 			return mFormatBuilder.ToString();
 		}
 	}
-
-	/// <summary>
-	/// A <see cref="ParameterParser{T}"/> that produces a <typeparamref name="TResult"/> object from one parameter.
-	/// </summary>
-	/// <remarks>
-	/// <para>By default, this parser will parse an object with the following format:</para>
-	/// <code>
-	/// [T0]
-	/// </code>
-	/// <para>and will return a <typeparamref name="TResult"/> by passing the constituent parameters (<typeparamref name="T0"/>) to <c>GetResult</c>.</para>
-	/// <para>By default, the grouping symbols used are parenthesis '()' and brackets '[],' but these can be changed by overriding <c>GroupingChars</c> in a derived class.
-	/// Elements can be optionally seperated from one another using a comma ','. This default seperator character can be changed by overriding <c>Seperator</c>.</para>
-	/// </remarks>
-	/// <typeparam name="T0">The first parameter type in this compound type.</typeparam>
-	/// <typeparam name="TResult">The type that this <see cref="ParameterParser{T}"/> produces.</typeparam>
-	public abstract class CompoundParser<T0, TResult> : CompoundParser<TResult>
-	{
-		protected sealed override TResult GetResult(object[] elements) => GetResult((T0) elements[0]);
-		
-		protected sealed override IEnumerable<Type> GetTypes() => new[] { typeof(T0) };
-
-		/// <summary>
-		/// Constructs a <typeparamref name="TResult"/> object from its constituents.
-		/// </summary>
-		/// <param name="element1">The first parameter, whose type is <typeparamref name="T0"/></param>
-		/// <returns>A <typeparamref name="TResult"/> object.</returns>
-		protected abstract TResult GetResult(T0 element1);
-	}
 }
