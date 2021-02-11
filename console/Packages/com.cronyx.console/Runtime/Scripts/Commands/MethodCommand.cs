@@ -10,32 +10,32 @@ using System.Threading.Tasks;
 namespace Cronyx.Console.Commands
 {
 	/// <summary>
-	/// Encapsulates an <see cref="IConsoleCommand"/> that is created from a method marked with a <see cref="PersistentCommandAttribute"/>.
+	/// Encapsulates an <see cref="IConsoleCommand"/> that is created from a method delegate.
 	/// </summary>
 	internal class MethodCommand : IConsoleCommand
 	{
-		private PersistentCommandAttribute mAttribute;
+		private string mName;
 		private MethodInfo mMethod;
 		private Parser mParser;
 
-		public string Help => mParser.CalculateHelp(mAttribute.Name);
+		public string Help => mParser.CalculateHelp(mName);
 
 		public void Invoke(string data)
 		{
 			if (!mParser.TryParse(data, out var arguments))
 			{
 				// Failed to parse input. Show usage
-				DeveloperConsole.LogWarning($"{mParser.CalculateUsage(mAttribute.Name)}\n" +
-					$"Try '{typeof(HelpCommand).GetCustomAttribute<PersistentCommandAttribute>().Name} {mAttribute.Name}' for more information.");
+				DeveloperConsole.LogWarning($"{mParser.CalculateUsage(mName)}\n" +
+					$"Try '{typeof(HelpCommand).GetCustomAttribute<PersistentCommandAttribute>().Name} {mName}' for more information.");
 				return;
 			}
 
 			mMethod.Invoke(null, arguments);
 		}
 
-		public MethodCommand(PersistentCommandAttribute attribute, MethodInfo method)
+		public MethodCommand(string name, MethodInfo method)
 		{
-			mAttribute = attribute;
+			mName = name;
 			mMethod = method;
 			mParser = Parser.FromMethodInfo(method);
 		}

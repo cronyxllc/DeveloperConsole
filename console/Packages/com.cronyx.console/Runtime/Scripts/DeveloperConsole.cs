@@ -17,7 +17,7 @@ using UnityEditor.Callbacks;
 namespace Cronyx.Console
 {
 	[DefaultExecutionOrder(-2000)]
-	public class DeveloperConsole : MonoBehaviour
+	public partial class DeveloperConsole : MonoBehaviour
 	{
 		#region Singleton
 
@@ -218,15 +218,39 @@ namespace Cronyx.Console
 			if (parseCommand == null)
 				throw new ArgumentException("Command parsing callback cannot be null.");
 
-			Console?.Register(name, new CommandData(false, description, new NonPersistentCommand(parseCommand, help)));
+			Console?.Register(name, new CommandData(name, false, description, new NonPersistentCommand(parseCommand, help)));
+		}
+
+		/// <summary>
+		/// Registers a delegate console command that will automatically parse arguments depending on the delegate's parameter types. 
+		/// </summary>
+		/// <param name="name">A unique name for this command. Cannot be null or whitespace.</param>
+		/// <param name="command">A delegate that is invoked when the command is inputted.</param>
+		/// <param name="description">A short, optional description of the command that appears in a list of all commands.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or empty, or if <paramref name="command"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">Thrown if <paramref name="name"/> is taken by another command.</exception>
+		public static void RegisterCommand (string name, Delegate command, string description=null)
+		{
+			if (string.IsNullOrWhiteSpace(name))
+				throw new ArgumentException("Command name cannot be null or whitespace.");
+
+			if (command == null)
+				throw new ArgumentException("Command delegate cannot be null.");
+
+			Console?.Register(name, new CommandData(name, false, description, new MethodCommand(name.Trim().ToLower(), command.GetMethodInfo())));
 		}
 
 		/// <summary>
 		/// Unregisters a command.
 		/// </summary>
 		/// <param name="name">The name of the command to unregister (case-insensitive, leading and trailing whitespace ignored).</param>
-		/// <exception cref="InvalidOperationException">Thrown when <paramref name="name"/> is not a registered command, or when attempting to unregister a built-in command, such as "cd," "pwd," or "list".</exception>
+		/// <exception cref="InvalidOperationException">Thrown when <paramref name="name"/> is not a registered command, or when attempting to unregister an essential command, such as "cd," "pwd," or "list".</exception>
 		public static void UnregisterCommand(string name) => mConsole?.Unregister(name);
+
+		/// <summary>
+		/// Gets an enumeration of <see cref="CommandData"/> objects containing information about all registered commands.
+		/// </summary>
+		public static IEnumerable<CommandData> Commands => mConsole?.mCommands.Values;
 
 		private bool mOpen;
 		private float mCachedTimeScale;
@@ -310,7 +334,7 @@ namespace Cronyx.Console
 				else command = Activator.CreateInstance(commandType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, (Binder)null, new object[0], null) as IConsoleCommand;
 
 				// Register the command
-				Register(commandAttribute.Name, new CommandData(commandType.GetCustomAttribute<EssentialCommandAttribute>() != null, commandAttribute.Description, command));
+				Register(commandAttribute.Name, new CommandData(commandAttribute.Name, commandType.GetCustomAttribute<EssentialCommandAttribute>() != null, commandAttribute.Description, command));
 			}
 
 			void RegisterMethodCommand (MethodInfo method)
@@ -326,7 +350,7 @@ namespace Cronyx.Console
 				}
 
 				// Register the command
-				Register(attribute.Name, new CommandData(method.GetCustomAttribute<EssentialCommandAttribute>() != null, attribute.Description, new MethodCommand(attribute, method)));
+				Register(attribute.Name, new CommandData(attribute.Name, method.GetCustomAttribute<EssentialCommandAttribute>() != null, attribute.Description, new MethodCommand(attribute.Name, method)));
 			}
 
 			// Get a list of all valid persistent commands
@@ -518,9 +542,10 @@ namespace Cronyx.Console
 			LogError(color32);
 		}
 
-		[PersistentCommand("testlist")]
 		public static void TestList (
-			[Switch('a', LongName = "first flag", Description = "flag1")] Vector2 vec
+			[Switch('a', LongName = "first flag", Description = "flag1")] Vector2 vec,
+			Color col,
+			Color col2
 			)
 		{
 			Log(vec);
