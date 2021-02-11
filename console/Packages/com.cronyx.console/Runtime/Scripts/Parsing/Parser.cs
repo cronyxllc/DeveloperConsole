@@ -49,6 +49,16 @@ namespace Cronyx.Console.Parsing
 			BindGenericParser(typeof(Dictionary<,>), typeof(DictionaryParser<,>));
 			BindGenericParser(typeof(IDictionary<,>), typeof(IDictionaryParser<,>));
 			BindGenericParser(typeof(IReadOnlyDictionary<,>), typeof(IReadOnlyDictionaryParser<,>));
+
+			// Unity Type parsers
+			AddParser(new Vector2Parser());
+			AddParser(new Vector2IntParser());
+			AddParser(new Vector3Parser());
+			AddParser(new Vector3IntParser());
+			AddParser(new Vector4Parser());
+			AddParser(new QuaternionParser());
+			AddParser(new ColorParser());
+			AddParser(new Color32Parser());
 		}
 
 		private static ISet<char> mSpecialChars = new HashSet<char>();

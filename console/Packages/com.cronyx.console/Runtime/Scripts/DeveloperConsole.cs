@@ -510,20 +510,20 @@ namespace Cronyx.Console
 
 		[PersistentCommand("test")]
 		public static void Test (
+			Color color,
+			Color32 color32
 			)
 		{
+			Log(color);
+			LogError(color32);
 		}
 
 		[PersistentCommand("testlist")]
 		public static void TestList (
-			[Switch('a', LongName = "first flag", Description = "flag1")] bool flag1,
-			[Switch('b', LongName = "flag two", Description = "flag2")] bool flag2,
-			[Switch('c', LongName = "third flag yay", Required = true, Min = 0, Max = 0)] float[] variable
+			[Switch('a', LongName = "first flag", Description = "flag1")] Vector2 vec
 			)
 		{
-			Log($"{nameof(flag1)}: {flag1}");
-			Log($"{nameof(flag2)}: {flag2}");
-			foreach (var c in variable) Log(c);
+			Log(vec);
 		}
 	}
 }

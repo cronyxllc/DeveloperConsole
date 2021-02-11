@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -29,7 +30,9 @@ namespace Cronyx.Console.Parsing
 		/// </summary>
 		protected virtual char Seperator { get; } = ',';
 
-		private IList<Type> mTypeSequence;
+		private Type[] mTypeSequence;
+		private object[] mDefaultValues;
+		private bool[] mHasDefaultValue;
 
 		/// <summary>
 		/// Gets the sequence of types that constitute the compound parameter this object parses.
@@ -76,7 +79,7 @@ namespace Cronyx.Console.Parsing
 
 			input.Claim(); // Claim initial grouping char
 
-			var elements = new object[mTypeSequence.Count];
+			var elements = new object[mTypeSequence.Length];
 			int elementIndex = 0;
 
 			while (true)
@@ -86,7 +89,17 @@ namespace Cronyx.Console.Parsing
 
 				if (input[0] == endGrouping)
 				{
-					if (elementIndex != elements.Length) return false; // Found end grouping symbol, but not all elements have been parsed!
+					if (elementIndex < elements.Length)
+					{
+						// Not all parameters were found. Were all required parameters found?
+						if (mHasDefaultValue[elementIndex])
+						{
+							// Set all default values
+							for (int i = elementIndex; i < elements.Length; i++) elements[i] = mDefaultValues[i];
+						} else return false; // Found end grouping symbol, but not all elements have been parsed!
+
+					}
+						
 					input.Claim(); // Claim end grouping char
 					break; // Finished list of elements
 				}
@@ -108,8 +121,33 @@ namespace Cronyx.Console.Parsing
 				}
 			}
 
-			result = GetResult(elements);
+			try
+			{
+				result = GetResult(elements);
+			} catch (Exception) { return false; }
+
 			return true;
+		}
+
+		private void TryGetDefaultValues ()
+		{
+			mDefaultValues = new object[mTypeSequence.Length];
+			mHasDefaultValue = new bool[mTypeSequence.Length];
+
+			// Look for GetResult method in a derived type
+			var method = GetType().GetMethod(nameof(GetResult), BindingFlags.Instance | BindingFlags.NonPublic, null,  mTypeSequence, null);
+			if (method == null) return; // No method found
+
+			var parameters = method.GetParameters();
+
+			for (int i = 0; i < parameters.Length; i++)
+			{
+				if (parameters[i].HasDefaultValue)
+				{
+					mHasDefaultValue[i] = true;
+					mDefaultValues[i] = parameters[i].DefaultValue;
+				}
+			}
 		}
 
 		public CompoundParser()
@@ -117,9 +155,11 @@ namespace Cronyx.Console.Parsing
 			if (GroupingChars == null || GroupingChars.Length == 0)
 				throw new ArgumentException($"You must provide at least one pair of grouping characters to use!");
 
-			mTypeSequence = GetTypes().ToList();
-			if (mTypeSequence == null || mTypeSequence.Count == 0)
+			mTypeSequence = GetTypes().ToArray();
+			if (mTypeSequence == null || mTypeSequence.Length == 0)
 				throw new ArgumentException($"You must provide at least one type!");
+
+			TryGetDefaultValues();
 
 			foreach (var c in GroupingChars.SelectMany(x => new[] { x.Beginning, x.End }))
 				Parser.AddSpecialChar(c);
@@ -131,11 +171,11 @@ namespace Cronyx.Console.Parsing
 			mFormatBuilder.Clear();
 			mFormatBuilder.Append(GroupingChars[0].Beginning);
 
-			for (int i = 0; i < mTypeSequence.Count; i++)
+			for (int i = 0; i < mTypeSequence.Length; i++)
 			{
 				var parser = Parser.GetParser(mTypeSequence[i]);
 				mFormatBuilder.Append(parser.GetFormat() ?? parser.GetTypeName());
-				if (i != mTypeSequence.Count - 1) mFormatBuilder.Append(' ');
+				if (i != mTypeSequence.Length - 1) mFormatBuilder.Append(' ');
 			}
 
 			mFormatBuilder.Append(GroupingChars[0].End);
