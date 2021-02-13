@@ -129,19 +129,19 @@ namespace Cronyx.Console
 		/// Logs a message to the console.
 		/// </summary>
 		/// <param name="message">A message, which will be converted to a string.</param>
-		public static void Log(object message) => Console?.Write(message, ConsoleSettings.ConsoleFontColor);
+		public static void Log(object message) => Console?.Write(message, Logger.LogLevel.Info);
 
 		/// <summary>
 		/// Logs a warning to the console.
 		/// </summary>
 		/// <param name="message">A warning, which will be converted to a string.</param>
-		public static void LogWarning(object message) => Console?.Write(message, ConsoleSettings.ConsoleFontWarningColor);
+		public static void LogWarning(object message) => Console?.Write(message, Logger.LogLevel.Warn);
 
 		/// <summary>
 		/// Logs an error to the console.
 		/// </summary>
 		/// <param name="message">An error, which will be converted to a string.</param>
-		public static void LogError(object message) => Console?.Write(message, ConsoleSettings.ConsoleFontErrorColor);
+		public static void LogError(object message) => Console?.Write(message, Logger.LogLevel.Error);
 
 		public static void LogFormat(string format, params object[] args) => Log(string.Format(format, args));
 		public static void LogWarningFormat(string format, params object[] args) => LogWarning(string.Format(format, args));
@@ -275,6 +275,10 @@ namespace Cronyx.Console
 			// Set home directory and navigate to it
 			mHomeDirectory = Application.persistentDataPath;
 			UpdateDirectory(mHomeDirectory);
+
+			// Handle unity log messages
+			if (ConsoleSettings.RedirectUnityConsoleOutput.IsEnabled())
+				Application.logMessageReceived += HandleUnityLog;
 		}
 
 		private void Update()
@@ -525,30 +529,82 @@ namespace Cronyx.Console
 			mOnConsoleClosed?.Invoke();
 		}
 
-		private void Write(object message, Color color)
+		private void Write(object message, Logger.LogLevel level, bool redirect=true)
 		{
 			var text = mUI.CreateTextEntry();
-			text.Text = message.ToString();
-			text.TextColor = color;
+			var raw = message.ToString();
+			text.Text = raw;
+			
+			switch (level)
+			{
+				case Logger.LogLevel.Info:
+					text.TextColor = ConsoleSettings.ConsoleFontColor;
+					break;
+
+				case Logger.LogLevel.Warn:
+					text.TextColor = ConsoleSettings.ConsoleFontWarningColor;
+					break;
+
+				case Logger.LogLevel.Error:
+					text.TextColor = ConsoleSettings.ConsoleFontErrorColor;
+					break;
+			}
+
+			if (redirect) RedirectToUnityConsole(raw, level);
+		}
+
+		private void RedirectToUnityConsole (string raw, Logger.LogLevel level)
+		{
+			if (!ConsoleSettings.RedirectConsoleOutput.IsEnabled()) return;
+
+			// First unregister the unity on log received delegate to prevent an infinite loop
+			Application.logMessageReceived -= HandleUnityLog;
+
+			// Log to unity console
+			switch (level)
+			{
+				case Logger.LogLevel.Info:
+					Debug.Log(raw);
+					break;
+
+				case Logger.LogLevel.Warn:
+					Debug.LogWarning(raw);
+					break;
+
+				case Logger.LogLevel.Error:
+					Debug.LogError(raw);
+					break;
+			}
+
+			// Re-register the unity on log received
+			if (ConsoleSettings.RedirectUnityConsoleOutput.IsEnabled())
+				Application.logMessageReceived += HandleUnityLog;
+		}
+
+		private void HandleUnityLog (string logString, string stackTrace, LogType type)
+		{
+			switch (type)
+			{
+				case LogType.Log:
+					Write(logString, Logger.LogLevel.Info, false);
+					break;
+
+				case LogType.Warning:
+					Write(logString, Logger.LogLevel.Warn, false);
+					break;
+
+				case LogType.Assert:
+				case LogType.Error:
+				case LogType.Exception:
+					Write(logString, Logger.LogLevel.Error, false);
+					break;
+			}
 		}
 
 		[PersistentCommand("test")]
-		public static void Test (
-			Color color,
-			Color32 color32
-			)
+		static void DoSomething ()
 		{
-			Log(color);
-			LogError(color32);
-		}
-
-		public static void TestList (
-			[Switch('a', LongName = "first flag", Description = "flag1")] Vector2 vec,
-			Color col,
-			Color col2
-			)
-		{
-			Log(vec);
+			Debug.Log("HI THERE!!! :D");
 		}
 	}
 }

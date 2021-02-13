@@ -19,6 +19,28 @@ namespace Cronyx.Console.Parsing
 		private string mDescription;
 		private string mMetaVar;
 		private Type mParser;
+		private object mDefaultValue;
+
+		/// <summary>
+		/// Gets or sets the default value of this parameter.
+		/// </summary>
+		/// <remarks>
+		/// <para>If this property is set to a string value and the type of the parameter this attribute is applied to is not a string,
+		/// the value will be parsed into an object using the default parser or the parser supplied by <see cref="Parser"/>.</para>
+		/// <para>If the string representation of the object cannot be parsed, this value will be ignored.</para>
+		/// <para>If this parameter is required (in the case that either <see cref="PositionalAttribute.Optional"/> is false or <see cref="SwitchAttribute.Required"/> is true),
+		/// the value of this property will be meaningless.</para>
+		/// </remarks>
+		public object Default
+		{
+			get => mDefaultValue;
+			set
+			{
+				if (value == null)
+					throw new ArgumentNullException(nameof(Default));
+				mDefaultValue = value;
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets a short string for this parameter that appears in usage and help text.

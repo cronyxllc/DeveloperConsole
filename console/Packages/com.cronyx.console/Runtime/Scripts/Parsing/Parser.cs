@@ -98,6 +98,14 @@ namespace Cronyx.Console.Parsing
 
 		}
 
+		private static object GetDefault(Type t)
+		{
+			// Get default value of type
+			if (t.IsValueType && Nullable.GetUnderlyingType(t) == null)
+				return Activator.CreateInstance(t);
+			else return null;
+		}
+
 		public static ParameterParser<T> GetParser <T> ()
 		{
 			var parser = GetParser(typeof(T)) as ParameterParser<T>;
@@ -169,12 +177,13 @@ namespace Cronyx.Console.Parsing
 			public string Description { get; private set; }
 			public int Min { get; private set; } = -1;
 			public int Max { get; private set; } = -1;
-			public Type OptionalParserType { get; private set; }
 			public string MetaVariable { get; private set; }
-			public object DefaultValue { get; private set; }
 			public bool Required { get; private set; }
 			public char ShortName { get; private set; }
 			public Type FieldType { get; private set; }
+
+			private Type mOptionalParserType;
+			private object mOptionalDefaultValue;
 
 			internal IParameterParser mParser;
 			internal IParameterParser Parser
@@ -187,13 +196,48 @@ namespace Cronyx.Console.Parsing
 				}
 			}
 
+			internal object DefaultValue
+			{
+				get
+				{
+					// Attempt to generate a default value.
+					if (mOptionalDefaultValue == null)
+					{
+						// No default value specified, use default(T)
+						return GetDefault(FieldType);
+					} else
+					{
+						if (FieldType.IsAssignableFrom(mOptionalDefaultValue.GetType())) return mOptionalDefaultValue;
+						else
+						{
+							// Supplied default value does not match field type
+							// Is this a string representation?
+							if (typeof(string) == mOptionalDefaultValue.GetType())
+							{
+								// Attempt to parse a default value
+								var rawInput = mOptionalDefaultValue as string;
+								var argInput = new ArgumentInput(rawInput);
+								argInput.TrimWhitespace();
+								if (!Parser.TryParse(argInput, out var defaultValue)) return GetDefault(FieldType); // Failed to parse string representation of default value, use default(T)
+								return defaultValue;
+							} else
+							{
+								// Not a string representation, and neither is the field type a string representation
+								// Return default(T)
+								return GetDefault(FieldType);
+							}
+						}
+					}
+				}
+			}
+
 			public string ParserFormat => Parser.GetFormat();
 
 			private IParameterParser GetOrCreateParser ()
 			{
 				// If a custom parser was specified, create it
-				if (OptionalParserType != null)
-					return Activator.CreateInstance(OptionalParserType, true) as IParameterParser;
+				if (mOptionalParserType != null)
+					return Activator.CreateInstance(mOptionalParserType, true) as IParameterParser;
 				return GetParser(FieldType);
 			}
 
@@ -226,7 +270,7 @@ namespace Cronyx.Console.Parsing
 				}
 
 				parameter.Description = parameterAttribute.Description;
-				parameter.OptionalParserType = parameterAttribute.Parser;
+				parameter.mOptionalParserType = parameterAttribute.Parser;
 				if (parameterAttribute.Meta != null) parameter.MetaVariable = parameterAttribute.Meta;
 
 				if (parameterAttribute is SwitchAttribute switchAttribute)
@@ -255,9 +299,9 @@ namespace Cronyx.Console.Parsing
 					parameter.Required = !positionalAttribute.Optional;
 				}
 
-				// Get default value (in the case of non-flag parameters) if it exists
-				if (parameter.ParamType != ParameterType.Flag && info.HasDefaultValue)
-					parameter.DefaultValue = info.DefaultValue;
+				// Get default value (in the case of non-flag parameters)
+				if (parameter.ParamType != ParameterType.Flag)
+					parameter.mOptionalDefaultValue = parameterAttribute.Default;
 
 				return parameter;
 			}
@@ -611,27 +655,10 @@ namespace Cronyx.Console.Parsing
 
 			// Parameters with an unassigned default value:
 			//	Must ensure that these are assigned their default value
-			//
-			// All other parameters:
-			//	Must ensure that they get assigned default(T) corresponding to their type, T.
-			//	This will also ensure that unassigned flag parameters get assigned 'false'
+			foreach (var param in mPositionals)
+				if (!parametersUsed.Contains(param)) args[mParameterIndexes[param]] = param.DefaultValue;
 			foreach (var param in mNonPositionals)
-			{	
-				if (!parametersUsed.Contains(param))
-				{
-					object value;
-					if (param.DefaultValue != null) value = param.DefaultValue;
-					else
-					{
-						// Get default value of type
-						if (param.FieldType.IsValueType && Nullable.GetUnderlyingType(param.FieldType) == null)
-							value = Activator.CreateInstance(param.FieldType);
-						else value = null;
-					}
-
-					args[mParameterIndexes[param]] = value;
-				}
-			}
+				if (!parametersUsed.Contains(param)) args[mParameterIndexes[param]] = param.DefaultValue;
 
 			arguments = args;
 
