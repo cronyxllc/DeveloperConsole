@@ -35,6 +35,7 @@ namespace Cronyx.Console.Parsing
 			// Booleans
 			AddParser(new BoolParser());
 
+			// Collections
 			BindGenericParser(typeof(IEnumerable<>), typeof(IEnumerableParser<>));
 			BindGenericParser(typeof(List<>), typeof(ListParser<>));
 			BindGenericParser(typeof(IList<>), typeof(IListParser<>));
@@ -75,7 +76,14 @@ namespace Cronyx.Console.Parsing
 		private static Dictionary<Type, IParameterParser> mParsers = new Dictionary<Type, IParameterParser>();
 		private static Dictionary<Type, Type> mGenericParsers = new Dictionary<Type, Type>();
 
+		/// <summary>
+		/// Registers a <see cref="ParameterParser{T}"/> that can parse objects of type <typeparamref name="T"/>.
+		/// </summary>
+		/// <typeparam name="T">The type of objects to parse.</typeparam>
+		/// <param name="parser">An instance of a parser that will be used to parse objects of type <typeparamref name="T"/></param>
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="parser"/> is null.</exception>
 		public static void AddParser<T>(ParameterParser<T> parser) => AddParser(typeof(T), parser);
+
 		private static void AddParser(Type parseType, IParameterParser parser)
 		{
 			if (parseType == null) throw new ArgumentNullException(nameof(parseType));
@@ -83,6 +91,25 @@ namespace Cronyx.Console.Parsing
 			mParsers[parseType] = parser;
 		}
 
+		/// <summary>
+		/// Binds a generic parser type that can be instantiated to parse an object of a generic type.
+		/// </summary>
+		/// <remarks>
+		/// <para>This method allows the creation of a generic template, so that multiple parsers can be created at once for generic types without having to specify a parser for each generic instantiation.</para>
+		/// <para>For instance, rather than registering multiple parsers for <c>List&lt;int&gt;</c>, <c>List&lt;string&gt;</c>, <c>List&lt;bool&gt;</c>, etc.,
+		/// a generic parser type can be specified for <see cref="List{T}"/> instead, and the parser will automatically instantiate parsers for each generic instantiation, as needed.</para>
+		/// <para>The following restrictions apply to the types passed to this method:</para>
+		/// <list type="bullet">
+		/// <item>Both <paramref name="genericTypeDefinition"/> and <paramref name="parserType"/> must be generic type definitions, such that <see cref="Type.IsGenericTypeDefinition"/> returns true.</item>
+		/// <item>The number of generic type arguments in <paramref name="genericTypeDefinition"/> must match the number of generic type arguments in <paramref name="parserType"/>.</item>
+		/// <item><paramref name="parserType"/> must have a parameterless constructor, which may or may not be publicly accessible.</item>
+		/// <item><paramref name="parserType"/> must be a concrete, non-abstract class. That is, it must be instantiable.</item>
+		/// </list>
+		/// </remarks>
+		/// <param name="genericTypeDefinition">The type definition of the generic type to be instantiated, such as <c>typeof(List&lt;&gt;)</c> or <c>typeof(Dictionary&lt;,&gt;)</c></param>
+		/// <param name="parserType">The type definition of the generic parser to be instantiated for a given generic type, such as <c>typeof(ListParser&lt;&gt;)</c> or <c>typeof(DictionaryParser&lt;,&gt;)</c></param>
+		/// <exception cref="ArgumentNullException">Thrown if <paramref name="genericTypeDefinition"/> or <paramref name="parserType"/> are null.</exception>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="parserType"/> or <paramref name="genericTypeDefinition"/> do not meet the required conditions as specified in the documentation for this method.</exception>
 		public static void BindGenericParser(Type genericTypeDefinition, Type parserType)
 		{
 			if (genericTypeDefinition == null) throw new ArgumentNullException(nameof(genericTypeDefinition));
@@ -93,6 +120,7 @@ namespace Cronyx.Console.Parsing
 			if (!parserType.IsGenericTypeDefinition) throw new ArgumentException(nameof(parserType));
 			if (parserType.GetGenericArguments().Length != genericTypeDefinition.GetGenericArguments().Length)
 				throw new ArgumentException($"{nameof(genericTypeDefinition)} and {nameof(parserType)} must have the same number of generic type arguments.");
+			if (parserType.IsAbstract) throw new ArgumentException($"{nameof(parserType)} must be a concrete (non-abstract) class.");
 
 			if (parserType.GetConstructor(
 				BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
@@ -100,7 +128,6 @@ namespace Cronyx.Console.Parsing
 				throw new ArgumentException($"{parserType.Name} must have a parameterless constructor to be used as a generic parser.");
 
 			mGenericParsers[genericTypeDefinition] = parserType;
-
 		}
 
 		private static object GetDefault(Type t)
@@ -111,16 +138,21 @@ namespace Cronyx.Console.Parsing
 			else return null;
 		}
 
-		public static ParameterParser<T> GetParser <T> ()
-		{
-			var parser = GetParser(typeof(T)) as ParameterParser<T>;
-			if (parser == null) throw new ParserNotFoundException(nameof(T));
-			return parser;
-		}
+		/// <summary>
+		/// Returns the default parser for an object of type <typeparamref name="T"/>
+		/// or throws <see cref="ParserNotFoundException"/> if none could be found.
+		/// </summary>
+		/// <typeparam name="T">The type for which a parser should be found.</typeparam>
+		/// <returns>A <see cref="ParameterParser{T}"/> that can parse and return objects of type <typeparamref name="T"/> from a string representation of that type.</returns>
+		/// <exception cref="ParserNotFoundException">Thrown if the parser of type <typeparamref name="T"/> could not be found or created.</exception>
+		public static ParameterParser<T> GetParser <T> () => GetParser(typeof(T)) as ParameterParser<T>;
 
 		// Type can be a concrete type, such as int or float, for which an explicit parser has been declared,
 		// or it can be a closed generic type, such as List<int> or HashSet<float>, for which no explicit parser has been declared
 		// but instead can be generated from an existing generic parser definition
+		//
+		// Type can also be a (generic) Tuple or ValueTuple
+		// or a 1D array (such as int[] or string[]), and the relevant parser will be created
 		internal static IParameterParser GetParser(Type parseType)
 		{
 			if (mParsers.ContainsKey(parseType)) return mParsers[parseType];
@@ -137,7 +169,7 @@ namespace Cronyx.Console.Parsing
 				// Special case for parse types that are 1D arrays
 				constructedParserType = typeof(ArrayParser<>).MakeGenericType(parseType.GetElementType());
 			}
-			else if (TupleParser.IsTupleType(parseType) || TupleParser.IsValueTupleType(parseType))
+			else if (TupleParserUtils.IsTupleType(parseType) || TupleParserUtils.IsValueTupleType(parseType))
 			{
 				// Special case for tuple classes
 				constructedParserType = typeof(TupleParser<>).MakeGenericType(parseType);
@@ -165,6 +197,15 @@ namespace Cronyx.Console.Parsing
 			return parser;
 		}
 
+		/// <summary>
+		/// Gets the formatted type name for an object of type <typeparamref name="T"/>
+		/// </summary>
+		/// <remarks>
+		/// Equivalent to calling <see cref="ParameterParser{T}.GetTypeName"/> on the object returned by <see cref="GetParser{T}"/>.
+		/// </remarks>
+		/// <typeparam name="T">The type whose type name should be found.</typeparam>
+		/// <returns>The formatted type name for <typeparamref name="T"/>, for example, <c>"float"</c> or <c>"List&lt;string&gt;"</c></returns>
+		/// <exception cref="ParserNotFoundException">Thrown if the parser for <typeparamref name="T"/> could not be found or created.</exception>
 		public static string GetTypeName<T>() => GetTypeName(typeof(T));
 
 		private static string GetTypeName(Type type) {

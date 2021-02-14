@@ -99,6 +99,16 @@ namespace Cronyx.Console
 		private event Action<string> mOnDirectoryChanged;
 
 		/// <summary>
+		/// An event that is invoked when the user has submitted text to the console.
+		/// </summary>
+		public static event Action<string> OnInputSubmitted
+		{
+			add { if (Console != null) Console.mOnInputSubmitted += value; }
+			remove { if (Console != null) Console.mOnInputSubmitted -= value; }
+		}
+		private event Action<string> mOnInputSubmitted;
+
+		/// <summary>
 		/// Opens the console. Does nothing if the console is already open.
 		/// </summary>
 		public static void Open() => Console?.OpenConsole();
@@ -218,7 +228,7 @@ namespace Cronyx.Console
 			if (parseCommand == null)
 				throw new ArgumentException("Command parsing callback cannot be null.");
 
-			Console?.Register(name, new CommandData(name, false, description, new NonPersistentCommand(parseCommand, help)));
+			Console?.Register(name, new CommandData(name, false, description, new DynamicCommand(parseCommand, help)));
 		}
 
 		/// <summary>
@@ -262,6 +272,8 @@ namespace Cronyx.Console
 
 		private ConsoleView mUI;
 
+		#region UnityCallbacks
+
 		private void Awake()
 		{
 			if (!EnsureSingleton()) Destroy(gameObject);
@@ -273,7 +285,7 @@ namespace Cronyx.Console
 			RegisterPersistentCommands();
 
 			// Set home directory and navigate to it
-			mHomeDirectory = Application.persistentDataPath;
+			mHomeDirectory = GetHomeDirectory();
 			UpdateDirectory(mHomeDirectory);
 
 			// Handle unity log messages
@@ -289,6 +301,15 @@ namespace Cronyx.Console
 				else OpenConsole();
 			}
 		}
+
+		private void OnDestroy()
+		{
+			Application.logMessageReceived -= HandleUnityLog;
+		}
+
+		#endregion UnityCallbacks
+
+		#region Registration
 
 		private void Register(string name, CommandData command)
 		{
@@ -312,19 +333,26 @@ namespace Cronyx.Console
 			mCommands.Remove(name);
 		}
 
+		private static string TypeCommandNameTakenWarning(Type commandType, string commandName)
+			=> $"Type '{commandType.Name}' with attached {nameof(CommandAttribute)} has a command name, '{commandName},' that has already been taken and therefore will not be registered as a command. " +
+						$"Did you mean to use a different name?";
+
+		private static string MethodCommandNameTakenWarning(MethodInfo method, string commandName)
+			=> $"Method '{method.GetFormattedName()}' with attached {nameof(CommandAttribute)} has a command name, '{commandName},' that has already been taken and therefore will not be registered as a command. " +
+						$"Did you mean to use a different name?";
+
 		// Registers and instantiates all persistent commands, i.e., concrete classes that inherit from IConsoleCommand
 		// and are marked with the appropriate attribute
 		private void RegisterPersistentCommands ()
 		{
 			void RegisterTypeCommand (Type commandType)
 			{
-				var commandAttribute = commandType.GetCustomAttribute<PersistentCommandAttribute>();
+				var commandAttribute = commandType.GetCustomAttribute<CommandAttribute>();
 
 				// Check that this command name has not been taken
 				if (mCommands.ContainsKey(commandAttribute.Name))
 				{
-					Logger.Warn($"Type '{commandType.Name}' with attached {nameof(PersistentCommandAttribute)} has a command name, '{commandAttribute.Name},' that has already been taken and will not be registered as a command. " +
-						$"Did you mean to use a different name?");
+					Logger.Warn(TypeCommandNameTakenWarning(commandType, commandAttribute.Name));
 					return;
 				}
 
@@ -338,31 +366,30 @@ namespace Cronyx.Console
 				else command = Activator.CreateInstance(commandType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, (Binder)null, new object[0], null) as IConsoleCommand;
 
 				// Register the command
-				Register(commandAttribute.Name, new CommandData(commandAttribute.Name, commandType.GetCustomAttribute<EssentialCommandAttribute>() != null, commandAttribute.Description, command));
+				Register(commandAttribute.Name, new CommandData(commandAttribute.Name, commandType.GetCustomAttribute<EssentialAttribute>() != null, commandAttribute.Description, command));
 			}
 
 			void RegisterMethodCommand (MethodInfo method)
 			{
-				var attribute = method.GetCustomAttribute<PersistentCommandAttribute>();
+				var attribute = method.GetCustomAttribute<CommandAttribute>();
 
 				// Check that this command name has not been taken
 				if (mCommands.ContainsKey(attribute.Name))
 				{
-					Logger.Warn($"Method '{method.GetFormattedName()}' with attached {nameof(PersistentCommandAttribute)} has a command name, '{attribute.Name},' that has already been taken and will not be registered as a command. " +
-						$"Did you mean to use a different name?");
+					Logger.Warn(MethodCommandNameTakenWarning(method, attribute.Name));
 					return;
 				}
 
 				// Register the command
-				Register(attribute.Name, new CommandData(attribute.Name, method.GetCustomAttribute<EssentialCommandAttribute>() != null, attribute.Description, new MethodCommand(attribute.Name, method)));
+				Register(attribute.Name, new CommandData(attribute.Name, method.GetCustomAttribute<EssentialAttribute>() != null, attribute.Description, new MethodCommand(attribute.Name, method)));
 			}
 
 			// Get a list of all valid persistent commands
 			var commandTypes = GetPersistentCommandTypes();
 			var commandMethods = GetPersistentCommandMethods();
 
-			var commandTypesEssential = commandTypes.GroupBy(t => t.GetCustomAttribute<EssentialCommandAttribute>() != null);
-			var commandMethodsEssential = commandMethods.GroupBy(m => m.GetCustomAttribute<EssentialCommandAttribute>() != null);
+			var commandTypesEssential = commandTypes.GroupBy(t => t.GetCustomAttribute<EssentialAttribute>() != null);
+			var commandMethodsEssential = commandMethods.GroupBy(m => m.GetCustomAttribute<EssentialAttribute>() != null);
 
 			// Instantiate/register each command, starting with essential commands
 			foreach (var type in commandTypesEssential.SingleOrDefault(g => g.Key) ?? Enumerable.Empty<Type>()) RegisterTypeCommand(type);
@@ -380,9 +407,9 @@ namespace Cronyx.Console
 			// Order by descending
 			var flaggedTypes = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
 								from type in assembly.GetTypes()
-								let attr = type.GetCustomAttribute<PersistentCommandAttribute>()
+								let attr = type.GetCustomAttribute<CommandAttribute>()
 								where attr != null
-								orderby type.GetCustomAttribute<EssentialCommandAttribute>() != null descending
+								orderby type.GetCustomAttribute<EssentialAttribute>() != null descending
 								select type);
 
 			HashSet<string> commandNames = new HashSet<string>();
@@ -394,21 +421,21 @@ namespace Cronyx.Console
 				// Check that the type inherits from the command class
 				if (!type.GetInterfaces().Contains(typeof(IConsoleCommand)))
 				{
-					Logger.Warn($"Type '{type.Name}' with attached {nameof(PersistentCommandAttribute)} does not inherit from {typeof(IConsoleCommand).FullName} and will not be registered as a command. Did you mean to inherit from {typeof(IConsoleCommand).FullName}?");
+					Logger.Warn($"Type '{type.Name}' with attached {nameof(CommandAttribute)} does not inherit from {typeof(IConsoleCommand).FullName} and therefore will not be registered as a command. Did you mean to inherit from {typeof(IConsoleCommand).FullName}?");
 					continue;
 				}
 
 				// Check that the type is concrete
 				if (type.IsAbstract)
 				{
-					Logger.Warn($"Type '{type.Name}' is marked with a {nameof(PersistentCommandAttribute)}, but is not instantiable and will not be registered as a command. Did you mean for this type to be a non-abstract class?");
+					Logger.Warn($"Type '{type.Name}' is marked with a {nameof(CommandAttribute)}, but is not instantiable and therefore will not be registered as a command. Did you mean for this type to be a non-abstract class?");
 					continue;
 				}
 
 				// Check that the type is not an open generic type
 				if (type.ContainsGenericParameters)
 				{
-					Logger.Warn($"Type '{type.Name}' is marked with a {nameof(PersistentCommandAttribute)}, but it contains unassigned generic type arguments and will not be registered as a command.");
+					Logger.Warn($"Type '{type.Name}' is marked with a {nameof(CommandAttribute)}, but it contains unassigned generic type arguments and therefore will not be registered as a command.");
 					continue;
 				}
 
@@ -417,7 +444,7 @@ namespace Cronyx.Console
 					BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 					null, Type.EmptyTypes, null) == null)
 				{
-					Logger.Warn($"Type '{type.Name}' is marked with a {nameof(PersistentCommandAttribute)}, but it lacks a parameterless constructor and will not be registered as a command.");
+					Logger.Warn($"Type '{type.Name}' is marked with a {nameof(CommandAttribute)}, but it lacks a parameterless constructor and therefore will not be registered as a command.");
 					continue;
 				}
 
@@ -433,7 +460,7 @@ namespace Cronyx.Console
 			var flaggedMethods = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
 								  from type in assembly.GetTypes()
 								  from method in type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-								  where method.GetCustomAttribute<PersistentCommandAttribute>() != null
+								  where method.GetCustomAttribute<CommandAttribute>() != null
 								  select method);
 
 			// Go through the enumeration and find methods that are validly constructed, and log warnings for those that aren't
@@ -444,14 +471,14 @@ namespace Cronyx.Console
 				// Check that the method is static
 				if (!method.IsStatic)
 				{
-					Logger.Warn($"Method '{method.GetFormattedName()}' is marked with a {nameof(PersistentCommandAttribute)}, but it is not static and will not be registered as a command. Did you mean to make this method static?");
+					Logger.Warn($"Method '{method.GetFormattedName()}' is marked with a {nameof(CommandAttribute)}, but it is not static and therefore will not be registered as a command. Did you mean to make this method static?");
 					continue;
 				}
 
 				// Check that the method is not generic
 				if (method.ContainsGenericParameters)
 				{
-					Logger.Warn($"Method '{method.GetFormattedName()}' is marked with a {nameof(PersistentCommandAttribute)}, but it contains open generic parameters and will not be registered as a command. Did you mean for there to be generic parameters associated with this method?");
+					Logger.Warn($"Method '{method.GetFormattedName()}' is marked with a {nameof(CommandAttribute)}, but it contains open generic parameters and therefore will not be registered as a command. Did you mean for there to be generic parameters associated with this method?");
 					continue;
 				}
 
@@ -467,12 +494,57 @@ namespace Cronyx.Console
 		{
 			var types = GetPersistentCommandTypes();
 			var methods = GetPersistentCommandMethods();
+			var all = (types as IEnumerable<MemberInfo>).Concat(methods).OrderByDescending(x => x.GetCustomAttribute<EssentialAttribute>() != null); // Sort with essential commands first
+
+			var names = new HashSet<string>();
+
+			// Verify that all command names are distinct and give warnings where they are not
+			foreach (var cmd in all) {
+				var cmdName = cmd.GetCustomAttribute<CommandAttribute>().Name; 
+				if (names.Contains(cmdName))
+				{
+					if (cmd is Type t) Logger.Warn(TypeCommandNameTakenWarning(t, cmdName));
+					else if (cmd is MethodInfo mi) Logger.Warn(MethodCommandNameTakenWarning(mi, cmdName));
+				} else names.Add(cmdName);
+			}
 		}
 #endif
+
+		#endregion Registration
+
+		private string GetHomeDirectory ()
+		{
+			switch (ConsoleSettings.HomeDirectoryMode)
+			{
+				default:
+				case ConsoleSettings.HomeDirectoryType.PersistentDataPath:
+					return Application.persistentDataPath;
+
+				case ConsoleSettings.HomeDirectoryType.StreamingAssetsPath:
+					return Application.streamingAssetsPath;
+
+				case ConsoleSettings.HomeDirectoryType.DataPath:
+					return Application.dataPath;
+
+				case ConsoleSettings.HomeDirectoryType.SystemHome:
+					return Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+				case ConsoleSettings.HomeDirectoryType.Documents:
+					return Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+
+				case ConsoleSettings.HomeDirectoryType.Custom:
+					var expanded = Environment.ExpandEnvironmentVariables(ConsoleSettings.CustomHomeDirectory);
+					if (!Directory.Exists(expanded)) return Application.persistentDataPath;
+					else return expanded;
+			}
+		}
 
 		// Called by ConsoleView when the user has submitted a line to the input field
 		internal void OnInputReceived (string input)
 		{
+			// Invoke callback
+			mOnInputSubmitted?.Invoke(input);
+
 			// Handle command recognition logic here
 			// First seperate input into command portion and argument portion, and trim strings
 			var splitArgs = SplitArgs(input);
@@ -528,6 +600,8 @@ namespace Cronyx.Console
 
 			mOnConsoleClosed?.Invoke();
 		}
+
+		#region Logging
 
 		private void Write(object message, Logger.LogLevel level, bool redirect=true)
 		{
@@ -600,5 +674,7 @@ namespace Cronyx.Console
 					break;
 			}
 		}
+
+		#endregion Logging
 	}
 }

@@ -18,13 +18,13 @@ namespace Cronyx.Console.Parsing.Parsers
 		public override bool TryParse(ArgumentInput input, out T? result)
 		{
 			result = null;
-			if (!GetParser<T>().TryParse(input, out T value)) return false;
+			if (!Parser.GetParser<T>().TryParse(input, out T value)) return false;
 			result = value;
 			return true;
 		}
 
-		public override string GetFormat() => GetParser<T>().GetFormat();
+		public override string GetFormat() => Parser.GetParser<T>().GetFormat();
 
-		public override string GetTypeName() => $"{GetParser<T>().GetTypeName()}?";
+		public override string GetTypeName() => $"{Parser.GetTypeName<T>()}?";
 	}
 }

@@ -40,17 +40,17 @@ namespace Cronyx.Console.Parsing.Parsers
 			return true;
 		}
 
-		public override string GetFormat() => $"{{{GetParser<KeyValuePair<TKey, TValue>>().GetFormat()} ...}}";
-		public override string GetTypeName() => $"Dictionary<{GetTypeName<TKey>()},{GetTypeName<TValue>()}>";
+		public override string GetFormat() => $"{{{Parser.GetParser<KeyValuePair<TKey, TValue>>().GetFormat()} ...}}";
+		public override string GetTypeName() => $"Dictionary<{Parser.GetTypeName<TKey>()},{Parser.GetTypeName<TValue>()}>";
 	}
 
 	public class IDictionaryParser<TKey, TValue> : CovariantParser<Dictionary<TKey, TValue>, IDictionary<TKey, TValue>>
 	{
-		public override string GetTypeName() => $"IDictionary<{GetTypeName<TKey>()},{GetTypeName<TValue>()}>";
+		public override string GetTypeName() => $"IDictionary<{Parser.GetTypeName<TKey>()},{Parser.GetTypeName<TValue>()}>";
 	}
 
 	public class IReadOnlyDictionaryParser<TKey, TValue> : CovariantParser<Dictionary<TKey, TValue>, IReadOnlyDictionary<TKey, TValue>>
 	{
-		public override string GetTypeName() => $"IReadOnlyDictionary<{GetTypeName<TKey>()},{GetTypeName<TValue>()}>";
+		public override string GetTypeName() => $"IReadOnlyDictionary<{Parser.GetTypeName<TKey>()},{Parser.GetTypeName<TValue>()}>";
 	}
 }

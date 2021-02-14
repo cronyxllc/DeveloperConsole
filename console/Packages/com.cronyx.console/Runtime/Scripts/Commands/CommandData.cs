@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Cronyx.Console.Commands
 {
 	/// <summary>
-	/// A wrapper around <see cref="IConsoleCommand"/> that bundles relevant metadata about a command with its implementation.
+	/// A wrapper around <see cref="IConsoleCommand"/> that bundles a command's metadata with its implementation.
 	/// </summary>
 	public class CommandData
 	{

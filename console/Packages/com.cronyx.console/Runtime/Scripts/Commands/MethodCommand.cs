@@ -26,7 +26,7 @@ namespace Cronyx.Console.Commands
 			{
 				// Failed to parse input. Show usage
 				DeveloperConsole.LogWarning($"{mParser.CalculateUsage(mName)}\n" +
-					$"Try '{typeof(HelpCommand).GetCustomAttribute<PersistentCommandAttribute>().Name} {mName}' for more information.");
+					$"Try '{typeof(HelpCommand).GetCustomAttribute<CommandAttribute>().Name} {mName}' for more information.");
 				return;
 			}
 

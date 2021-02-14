@@ -13,5 +13,5 @@ namespace Cronyx.Console.Commands
 	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method,
 		AllowMultiple = false,
 		Inherited = false)]
-	internal class EssentialCommandAttribute : Attribute { }
+	internal class EssentialAttribute : Attribute { }
 }

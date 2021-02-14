@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace Cronyx.Console.Parsing.Parsers
 {
 	/// <summary>
-	/// Parses a tuple type with an arbitrary number of parameters using reflection.
+	/// Parses a tuple type with an arbitrary number of parameters using reflection. Works for both <see cref="ValueTuple"/> and <see cref="Tuple"/>
 	/// </summary>
 	/// <typeparam name="T">A tuple type with an arbitrary number of generic arguments</typeparam>
 	internal class TupleParser<T> : CompoundParser<T>
@@ -15,8 +15,8 @@ namespace Cronyx.Console.Parsing.Parsers
 		protected override T GetResult(object[] elements)
 		{
 			Type tupleType = null;
-			if (TupleParser.IsTupleType(typeof(T))) tupleType = TupleParser.GetTupleType(GetTypes().ToArray());
-			else if (TupleParser.IsValueTupleType(typeof(T))) tupleType = TupleParser.GetValueTupleType(GetTypes().ToArray());
+			if (TupleParserUtils.IsTupleType(typeof(T))) tupleType = TupleParserUtils.GetTupleType(GetTypes().ToArray());
+			else if (TupleParserUtils.IsValueTupleType(typeof(T))) tupleType = TupleParserUtils.GetValueTupleType(GetTypes().ToArray());
 			return (T) Activator.CreateInstance(tupleType, elements);
 		}
 
@@ -27,7 +27,7 @@ namespace Cronyx.Console.Parsing.Parsers
 			// Get type name for this tuple.
 			// Type name will be different depending on whether this parser is parsing for a ValueTuple<> or a Tuple<>
 
-			if (TupleParser.IsTupleType(typeof(T)))
+			if (TupleParserUtils.IsTupleType(typeof(T)))
 			{
 				// Return "Tuple<...>," filling in the type arguments
 				StringBuilder sb = new StringBuilder("Tuple");
@@ -59,7 +59,7 @@ namespace Cronyx.Console.Parsing.Parsers
 		}
 	}
 
-	internal static class TupleParser
+	internal static class TupleParserUtils
 	{
 		private static readonly Dictionary<int, Func<Type[], Type>> mCreateValueTupleType = new Dictionary<int, Func<Type[], Type>>()
 		{

@@ -32,8 +32,8 @@ namespace Cronyx.Console.Commands.Shell
 			return Directory.Exists(newPath); 
 		} 
 
-		[PersistentCommand(kCommandName, Description = "Changes the current directory")]
-		[EssentialCommand]
+		[Command(kCommandName, Description = "Changes the current directory")]
+		[Essential]
 		public class ChangeDirectoryCommand : IConsoleCommand
 		{
 			private const string kCommandName = "cd";
@@ -60,8 +60,8 @@ namespace Cronyx.Console.Commands.Shell
 		// TODO:	This command could certainly use some additional code
 		//			to add additional switches (such as -l or -a) to make it
 		//			similar to the Linux 'ls.' For now, it is kept quite simple.
-		[PersistentCommand(kCommandName, Description = "Lists all files and subdirectories in the current directory")]
-		[EssentialCommand]
+		[Command(kCommandName, Description = "Lists all files and subdirectories in the current directory")]
+		[Essential]
 		public class ListCommand : IConsoleCommand
 		{
 			private const string kCommandName = "ls";
@@ -113,8 +113,8 @@ namespace Cronyx.Console.Commands.Shell
 			}
 		}
 
-		[PersistentCommand(kCommandName, Description = "Prints the current directory")]
-		[EssentialCommand]
+		[Command(kCommandName, Description = "Prints the current directory")]
+		[Essential]
 		public class PrintWorkingDirectoryCommand : IConsoleCommand
 		{
 			private const string kCommandName = "pwd";

@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace Cronyx.Console.Commands
 {
+	/// <summary>
+	/// An interface that represents a console command.
+	/// </summary>
 	public interface IConsoleCommand
 	{
 		/// <summary>

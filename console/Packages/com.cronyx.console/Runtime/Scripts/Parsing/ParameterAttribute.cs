@@ -117,7 +117,7 @@ namespace Cronyx.Console.Parsing
 		/// <item>The type cannot represent an abstract <see cref="ParameterParser{T}"/>. That is, it must be instantiable.</item>
 		/// <item>The parser specified by the type must produce a result (in its <see cref="ParameterParser{T}.TryParse(ArgumentInput, out T)"/> method) that exactly matches the parameter type this attribute is applied to, or a subclass of that type.
 		/// For instance, if this attribute is applied to a parameter whose type is <c>IEnumerable&lt;string&gt;</c>, the parser must produce
-		/// a <c>IEnumerableParser&lt;string&gt;</c> object or a relevant subclass, such as <c>List&lt;string&gt;</c>.</item>
+		/// a <c>IEnumerable&lt;string&gt;</c> object or a relevant subclass, such as <c>List&lt;string&gt;</c>.</item>
 		/// </list>
 		/// </para>
 		/// </remarks>

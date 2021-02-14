@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace Cronyx.Console.Commands.Shell
 {
-	[PersistentCommand(kCommandName, Description = "Displays help information about available commands")]
-	[EssentialCommand]
+	[Essential, Command(kCommandName, Description = "Displays help information about available commands")]
 	internal class HelpCommand : IConsoleCommand
 	{
 		private const string kCommandName = "help";

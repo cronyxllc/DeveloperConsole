@@ -36,6 +36,37 @@ namespace Cronyx.Console
 			Always = EditorOnly | PlayerOnly
 		}
 
+		/// <summary>
+		/// An enum representing which path the console should use as the home directory.
+		/// </summary>
+		public enum HomeDirectoryType
+		{
+			/// <summary>
+			/// Use <see cref="Application.persistentDataPath"/> as the home folder. This is the ideal choice for maximal cross-platform compatibility.
+			/// </summary>
+			PersistentDataPath,
+			/// <summary>
+			/// Use <see cref="Application.streamingAssetsPath"/> as the home folder.
+			/// </summary>
+			StreamingAssetsPath,
+			/// <summary>
+			/// Use <see cref="Application.dataPath"/> as the home folder. Not recommended for mobile builds.
+			/// </summary>
+			DataPath,
+			/// <summary>
+			/// Use the system home folder as the console home folder. This folder corresponds to <see cref="Environment.SpecialFolder.UserProfile"/>
+			/// </summary>
+			SystemHome,
+			/// <summary>
+			/// Use the system documents folder as the home folder. This folder corresponds to <see cref="Environment.SpecialFolder.Personal"/>
+			/// </summary>
+			Documents,
+			/// <summary>
+			/// Use a 
+			/// </summary>
+			Custom
+		}
+
 		private static ConsoleSettings mSettings;
 
 		/// <summary>
@@ -56,6 +87,23 @@ namespace Cronyx.Console
 		/// </summary>
 		public static FeatureMode EnableConsole => Settings.mEnableConsole;
 		[SerializeField] internal FeatureMode mEnableConsole = FeatureMode.Always;
+
+		/// <summary>
+		/// <para>Gets the <see cref="HomeDirectoryType"/> representing which path the console should use as the home directory.</para>
+		/// <para>If set to <see cref="HomeDirectoryType.Custom"/>, will use <see cref="CustomHomeDirectory"/> instead.</para>
+		/// </summary>
+		public static HomeDirectoryType HomeDirectoryMode => Settings.mHomeDirectoryMode;
+		[SerializeField] internal HomeDirectoryType mHomeDirectoryMode = HomeDirectoryType.PersistentDataPath;
+
+		/// <summary>
+		/// Gets the path to the custom home directory that the console should use. Only relevant if <see cref="HomeDirectoryMode"/> is set to <see cref="HomeDirectoryType.Custom"/>.
+		/// </summary>
+		/// <remarks>
+		/// If <see cref="HomeDirectoryMode"/> is set to <see cref="HomeDirectoryType.Custom"/> and this value is not a valid path to a directory,
+		/// will use the directory corresponding to <see cref="HomeDirectoryType.PersistentDataPath"/> instead.
+		/// </remarks>
+		public static string CustomHomeDirectory => Settings.mCustomHomeDirectory;
+		[SerializeField] internal string mCustomHomeDirectory;
 
 		/// <summary>
 		/// Gets the keycode that will be used to open the developer console.

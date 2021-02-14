@@ -16,8 +16,8 @@ namespace Cronyx.Console.Parsing.Parsers
 
 			result = default;
 
-			var keyParser = GetParser<TKey>();
-			var valueParser = GetParser<TValue>();
+			var keyParser = Parser.GetParser<TKey>();
+			var valueParser = Parser.GetParser<TValue>();
 
 			if (!keyParser.TryParse(input, out TKey key)) return false; // Failed to parse key
 			input.TrimWhitespace();
@@ -33,8 +33,8 @@ namespace Cronyx.Console.Parsing.Parsers
 			return true;
 		}
 
-		public override string GetFormat() => $"{GetParser<TKey>().GetFormat() ?? "key"}: {GetParser<TValue>().GetFormat() ?? "value"}";
-		public override string GetTypeName() => $"KeyValuePair<{GetTypeName<TKey>()},{GetTypeName<TValue>()}>";
+		public override string GetFormat() => $"{Parser.GetParser<TKey>().GetFormat() ?? "key"}: {Parser.GetParser<TValue>().GetFormat() ?? "value"}";
+		public override string GetTypeName() => $"KeyValuePair<{Parser.GetTypeName<TKey>()},{Parser.GetTypeName<TValue>()}>";
 
 		public KeyValuePairParser ()
 		{

@@ -9,7 +9,7 @@ namespace Cronyx.Console.Commands
 	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method,
 		AllowMultiple = false,
 		Inherited = false)]
-	public class PersistentCommandAttribute : Attribute
+	public class CommandAttribute : Attribute
 	{
 		public string Name { get; private set; }
 
@@ -19,10 +19,10 @@ namespace Cronyx.Console.Commands
 		public string Description { get; set; }
 
 		/// <summary>
-		/// Default constructor for <see cref="PersistentCommandAttribute"/>
+		/// Default constructor for <see cref="CommandAttribute"/>
 		/// </summary>
 		/// <param name="name">The name of this command. Note that console command names are case-insensitive, i.e. "help" and "HELP" refer to the same command.</param>
-		public PersistentCommandAttribute (string name)
+		public CommandAttribute (string name)
 		{
 			if (string.IsNullOrWhiteSpace(name))
 				throw new ArgumentException("Console command names cannot be null or whitespace.");

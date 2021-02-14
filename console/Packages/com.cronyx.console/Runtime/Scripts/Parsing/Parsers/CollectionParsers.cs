@@ -12,7 +12,7 @@ namespace Cronyx.Console.Parsing.Parsers
 	public class ArrayParser<T> : AliasParser<IEnumerable<T>, T[]>
 	{
 		public override T[] Convert(IEnumerable<T> baseValue) => baseValue.ToArray();
-		public override string GetTypeName() => $"{GetTypeName<T>()}[]";
+		public override string GetTypeName() => $"{Parser.GetTypeName<T>()}[]";
 	}
 
 	/// <summary>
@@ -21,27 +21,27 @@ namespace Cronyx.Console.Parsing.Parsers
 	public class ListParser<T> : AliasParser<IEnumerable<T>, List<T>>
 	{
 		public override List<T> Convert(IEnumerable<T> baseValue) => baseValue.ToList();
-		public override string GetTypeName() => $"List<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"List<{Parser.GetTypeName<T>()}>";
 	}
 
 	public class IListParser<T> : CovariantParser<List<T>, IList<T>> 
 	{
-		public override string GetTypeName() => $"IList<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"IList<{Parser.GetTypeName<T>()}>";
 	}
 
 	public class IReadOnlyListParser<T> : CovariantParser<List<T>, IReadOnlyList<T>>
 	{
-		public override string GetTypeName() => $"IReadOnlyList<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"IReadOnlyList<{Parser.GetTypeName<T>()}>";
 	}
 
 	public class ICollectionParaser<T> : CovariantParser<List<T>, ICollection<T>>
 	{
-		public override string GetTypeName() => $"ICollection<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"ICollection<{Parser.GetTypeName<T>()}>";
 	}
 
 	public class IReadOnlyCollectionParser<T> : CovariantParser<List<T>, IReadOnlyCollection<T>>
 	{
-		public override string GetTypeName() => $"IReadOnlyCollection<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"IReadOnlyCollection<{Parser.GetTypeName<T>()}>";
 	}
 
 	/// <summary>
@@ -60,7 +60,7 @@ namespace Cronyx.Console.Parsing.Parsers
 			return queue;
 		}
 
-		public override string GetTypeName() => $"Queue<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"Queue<{Parser.GetTypeName<T>()}>";
 	}
 
 	/// <summary>
@@ -79,7 +79,7 @@ namespace Cronyx.Console.Parsing.Parsers
 			return stack;
 		}
 
-		public override string GetTypeName() => $"Stack<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"Stack<{Parser.GetTypeName<T>()}>";
 	}
 
 	/// <summary>
@@ -106,14 +106,12 @@ namespace Cronyx.Console.Parsing.Parsers
 			return true;
 		}
 
-		public override string GetFormat() => $"{{{GetParser<T>().GetFormat() ?? "foo bar"} ...}}";
-		public override string GetTypeName() => $"HashSet<{GetTypeName<T>()}>";
+		public override string GetFormat() => $"{{{Parser.GetParser<T>().GetFormat() ?? "foo bar"} ...}}";
+		public override string GetTypeName() => $"HashSet<{Parser.GetTypeName<T>()}>";
 	}
 
 	public class ISetParser<T> : CovariantParser<HashSet<T>, ISet<T>>
 	{
-		public override string GetTypeName() => $"ISet<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"ISet<{Parser.GetTypeName<T>()}>";
 	}
-
-
 }

@@ -46,7 +46,7 @@ namespace Cronyx.Console.Parsing.Parsers
 
 			// Create backing type
 			List<T> elements = new List<T>();
-			ParameterParser<T> elementParser = GetParser<T>();
+			ParameterParser<T> elementParser = Parser.GetParser<T>();
 
 			// Claim as many elements as possible
 			while (true)
@@ -78,9 +78,9 @@ namespace Cronyx.Console.Parsing.Parsers
 			return true;
 		}
 
-		public override string GetFormat() => $"[{GetParser<T>().GetFormat() ?? "foo bar"} ...]";
+		public override string GetFormat() => $"[{Parser.GetParser<T>().GetFormat() ?? "foo bar"} ...]";
 
-		public override string GetTypeName() => $"{nameof(IEnumerable)}<{GetTypeName<T>()}>";
+		public override string GetTypeName() => $"{nameof(IEnumerable)}<{Parser.GetTypeName<T>()}>";
 
 		public IEnumerableParser ()
 		{
