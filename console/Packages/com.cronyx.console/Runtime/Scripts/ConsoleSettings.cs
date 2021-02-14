@@ -15,7 +15,6 @@ namespace Cronyx.Console
 		/// <summary>
 		/// An enum representing whether or not a feature should be enabled in the editor and/or in the build player.
 		/// </summary>
-		[Flags]
 		public enum FeatureMode
 		{
 			/// <summary>
@@ -33,7 +32,7 @@ namespace Cronyx.Console
 			/// <summary>
 			/// This feature should always be enabled.
 			/// </summary>
-			Always = EditorOnly | PlayerOnly
+			Always = 3
 		}
 
 		/// <summary>
@@ -186,8 +185,8 @@ namespace Cronyx.Console
 		/// <summary>
 		/// Gets the character representing the console prefix.
 		/// </summary>
-		public static char ConsolePrefixCharacter => Settings.mConsolePrefixCharacter;
-		[SerializeField] internal char mConsolePrefixCharacter = 'λ';
+		public static char ConsolePrefixCharacter => Settings.mConsolePrefixCharacter.Length == 0 ? ' ' : Settings.mConsolePrefixCharacter[0];
+		[SerializeField] internal string mConsolePrefixCharacter = "$";
 
 		/// <summary>
 		/// If true, all text in the console's input field will be selected when the console opens.
@@ -199,6 +198,7 @@ namespace Cronyx.Console
 		{
 			if (mMaxEntries < 1) mMaxEntries = 1;
 			if (mMaxInputHistory < 1) mMaxInputHistory = 1;
+			if (mConsolePrefixCharacter.Length > 1) mConsolePrefixCharacter = mConsolePrefixCharacter[0].ToString();
 		}
 
 		internal static ConsoleSettings FindSettings()
@@ -225,6 +225,7 @@ namespace Cronyx.Console
 
 			const string defaultFontAssetResourcesPath = "Developer Console/CourierPrimeAsset";
 			settings.mConsoleFont = Resources.Load<TMP_FontAsset>(defaultFontAssetResourcesPath);
+			settings.mCustomHomeDirectory = Application.persistentDataPath;
 			return settings;
 		}
 
@@ -242,10 +243,12 @@ namespace Cronyx.Console
 	{
 		public static bool IsEnabled(this ConsoleSettings.FeatureMode mode)
 		{
+			if (mode == ConsoleSettings.FeatureMode.Never) return false;
+			if (mode == ConsoleSettings.FeatureMode.Always) return true;
 #if UNITY_EDITOR
-			if (!mode.HasFlag(ConsoleSettings.FeatureMode.EditorOnly)) return false;
+			if (mode != ConsoleSettings.FeatureMode.EditorOnly) return false;
 #elif UNITY_STANDALONE
-			if (!mode.HasFlag(FeatureMode.InPlayer)) return false;
+			if (mode != ConsoleSettings.FeatureMode.PlayerOnly) return false;
 #endif
 			return true;
 		}

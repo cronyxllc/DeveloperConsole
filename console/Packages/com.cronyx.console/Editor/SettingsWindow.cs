@@ -21,6 +21,9 @@ namespace Cronyx.Console.Editor
 			public static readonly GUIContent settingMaxEntries = new GUIContent("Max Entries", "The maximum number of entries that can be stored in the console at any given time.");
 			public static readonly GUIContent settingMaxInputHistory = new GUIContent("Max Input History", "The maximum number of past inputs that can be stored at a given time.");
 			public static readonly GUIContent settingPauseOnOpen = new GUIContent("Pause Game", "Determines whether the game should be paused when opening the console by setting Time.timeScale to zero.");
+			public static readonly GUIContent settingHomeDirectoryMode = new GUIContent("Home Directory", "Determines what the default home directory path should be.");
+			public static readonly GUIContent settingHomeDirectoryPath = new GUIContent("Home Directory Path", "The path to the custom home directory. Environment variables like %HOMEPATH% will be expanded.");
+			public static readonly GUIContent buttonHomeDirectoryBrowse = EditorGUIUtility.IconContent("d_Folder Icon", "Browse to a custom home directory path");
 
 			public static readonly GUIContent titleVisual = new GUIContent("Visual Settings", "Settings that control the appearance of the developer console.");
 			public static readonly GUIContent settingFontAsset = new GUIContent("Font", "The TextMeshPro font asset that the console uses.");
@@ -49,58 +52,80 @@ namespace Cronyx.Console.Editor
 				return mSettings;
 			}
 		}
-		private SerializedObject mSerializedObject;
-		private SerializedObject SerializedObject
+		private SerializedObject mTarget;
+		private SerializedObject Target
 		{
 			get
 			{
-				if (mSerializedObject != null) return mSerializedObject;
-				mSerializedObject = new SerializedObject(Settings);
-				return mSerializedObject;
+				if (mTarget != null) return mTarget;
+				mTarget = new SerializedObject(Settings);
+				return mTarget;
 			}
 		}
 
 		private void OnGUI()
 		{
+			Target.Update();
+
 			using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
 			{
 				BasicSettings();
 			}
 
 			Settings.OnValidate();
-			EditorUtility.SetDirty(Settings);
+
+			if (Target.ApplyModifiedProperties())
+				EditorUtility.SetDirty(Settings);
 		}
+
+		private void DoProp(string name, GUIContent label) => DoProp(GetProp(name), label);
+		private void DoProp(SerializedProperty prop, GUIContent label) => EditorGUILayout.PropertyField(prop, label);
+		private SerializedProperty GetProp(string name) => Target.FindProperty(name);
 
 		private void BasicSettings ()
 		{
 			GUILayout.Label(Styles.titleGeneral, EditorStyles.boldLabel);
 			EditorGUI.indentLevel = 1;
-			//EditorGUILayout.PropertyField(SerializedObject.FindProperty(nameof(Settings.mEnableConsole)), Styles.settingEnabled);
-			Settings.mEnableConsole = FeatureField(Styles.settingEnabled, Settings.mEnableConsole);
-			Settings.mConsoleOpenKey = (KeyCode) EditorGUILayout.EnumPopup(Styles.settingKeyToOpen, Settings.mConsoleOpenKey);
-			Settings.mRedirectConsoleOutput = FeatureField(Styles.settingRedirectOutput, Settings.mRedirectConsoleOutput);
-			Settings.mRedirectUnityConsoleOutput = FeatureField(Styles.settingRedirectUnityOutput, Settings.mRedirectUnityConsoleOutput);
-			Settings.mSelectAllOnOpen = FeatureField(Styles.settingSelectAllOnOpen, Settings.mSelectAllOnOpen);
-			Settings.mMaxEntries = EditorGUILayout.IntField(Styles.settingMaxEntries, Settings.mMaxEntries);
-			Settings.mMaxInputHistory = EditorGUILayout.IntField(Styles.settingMaxInputHistory, Settings.mMaxInputHistory);
-			Settings.mPauseOnOpen = FeatureField(Styles.settingPauseOnOpen, Settings.mPauseOnOpen);
+
+			DoProp(nameof(ConsoleSettings.mEnableConsole), Styles.settingEnabled);
+			DoProp(nameof(ConsoleSettings.mConsoleOpenKey), Styles.settingKeyToOpen);
+			DoProp(nameof(ConsoleSettings.mRedirectConsoleOutput), Styles.settingRedirectOutput);
+			DoProp(nameof(ConsoleSettings.mRedirectUnityConsoleOutput), Styles.settingRedirectUnityOutput);
+			DoProp(nameof(ConsoleSettings.mSelectAllOnOpen), Styles.settingSelectAllOnOpen);
+			DoProp(nameof(ConsoleSettings.mMaxEntries), Styles.settingMaxEntries);
+			DoProp(nameof(ConsoleSettings.mMaxInputHistory), Styles.settingMaxInputHistory);
+			DoProp(nameof(ConsoleSettings.mPauseOnOpen), Styles.settingPauseOnOpen);
+			DoProp(nameof(ConsoleSettings.mHomeDirectoryMode), Styles.settingHomeDirectoryMode);
+
+			if (Settings.mHomeDirectoryMode == ConsoleSettings.HomeDirectoryType.Custom)
+				using (new EditorGUILayout.HorizontalScope())
+				{
+					var homeDirPathProp = GetProp(nameof(ConsoleSettings.mCustomHomeDirectory));
+					DoProp(homeDirPathProp, Styles.settingHomeDirectoryPath);
+
+					if (GUILayout.Button(Styles.buttonHomeDirectoryBrowse, EditorStyles.miniButton, GUILayout.MaxWidth(27)))
+					{
+						var currentDirectory = homeDirPathProp.stringValue;
+						var chosenPath = EditorUtility.OpenFolderPanel("Browse to Console Home Directory", Directory.Exists(currentDirectory) ? currentDirectory : Application.persistentDataPath, null);
+						if (!string.IsNullOrWhiteSpace(chosenPath)) homeDirPathProp.stringValue = chosenPath;
+					}
+				}
+
 			EditorGUI.indentLevel = 0;
 
 			EditorGUILayout.Space();
 
 			GUILayout.Label(Styles.titleVisual, EditorStyles.boldLabel);
 			EditorGUI.indentLevel = 1;
-			Settings.mConsoleFont = (TMPro.TMP_FontAsset) EditorGUILayout.ObjectField(Styles.settingFontAsset, Settings.mConsoleFont, typeof(TMPro.TMP_FontAsset), false);
-			Settings.mConsoleFontSize = EditorGUILayout.Slider(Styles.settingFontSize, Settings.mConsoleFontSize, 8, 100);
-			Settings.mConsoleOverlayAlpha = EditorGUILayout.Slider(Styles.settingOverlayAlpha, Settings.mConsoleOverlayAlpha, 0, 1);
-			Settings.mConsoleFontColor = EditorGUILayout.ColorField(Styles.settingFontColor, Settings.mConsoleFontColor);
-			Settings.mConsoleFontWarningColor = EditorGUILayout.ColorField(Styles.settingFontWarningColor, Settings.mConsoleFontWarningColor);
-			Settings.mConsoleFontErrorColor = EditorGUILayout.ColorField(Styles.settingFontErrorColor, Settings.mConsoleFontErrorColor);
-			Settings.mConsoleFilePathColor = EditorGUILayout.ColorField(Styles.settingFilePathColor, Settings.mConsoleFilePathColor);
 
-			var prefixChar = EditorGUILayout.TextField(Styles.settingPrefixCharacter, Settings.mConsolePrefixCharacter.ToString());
-			if (string.IsNullOrWhiteSpace(prefixChar)) Settings.mConsolePrefixCharacter = ' ';
-			else Settings.mConsolePrefixCharacter = prefixChar.ToCharArray()[0];
+			DoProp(nameof(ConsoleSettings.mConsoleFont), Styles.settingFontAsset);
+			EditorGUILayout.Slider(GetProp(nameof(ConsoleSettings.mConsoleFontSize)), 8, 100, Styles.settingFontSize);
+			EditorGUILayout.Slider(GetProp(nameof(ConsoleSettings.mConsoleOverlayAlpha)), 0, 1, Styles.settingOverlayAlpha);
+			DoProp(nameof(ConsoleSettings.mConsoleFontColor), Styles.settingFontColor);
+			DoProp(nameof(ConsoleSettings.mConsoleFontWarningColor), Styles.settingFontWarningColor);
+			DoProp(nameof(ConsoleSettings.mConsoleFontErrorColor), Styles.settingFontErrorColor);
+			DoProp(nameof(ConsoleSettings.mConsoleFilePathColor), Styles.settingFilePathColor);
+			DoProp(nameof(ConsoleSettings.mConsolePrefixCharacter), Styles.settingPrefixCharacter);
 
 			EditorGUI.indentLevel = 0;
 		}
