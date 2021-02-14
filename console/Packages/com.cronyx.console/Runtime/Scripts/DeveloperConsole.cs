@@ -600,11 +600,5 @@ namespace Cronyx.Console
 					break;
 			}
 		}
-
-		[PersistentCommand("test")]
-		static void DoSomething ()
-		{
-			Debug.Log("HI THERE!!! :D");
-		}
 	}
 }

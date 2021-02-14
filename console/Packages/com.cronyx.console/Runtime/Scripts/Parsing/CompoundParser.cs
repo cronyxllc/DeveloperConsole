@@ -35,6 +35,11 @@ namespace Cronyx.Console.Parsing
 		private bool[] mHasDefaultValue;
 
 		/// <summary>
+		/// Return the cached type sequence of this <see cref="CompoundParser{T}"/> without having to regenerate them by calling <see cref="GetTypes"/>
+		/// </summary>
+		public IReadOnlyList<Type> Types => mTypeSequence;
+
+		/// <summary>
 		/// Gets the sequence of types that constitute the compound parameter this object parses.
 		/// </summary>
 		/// <remarks>

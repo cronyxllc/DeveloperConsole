@@ -116,11 +116,11 @@ namespace Cronyx.Console.Parsing
 		// Type can be a concrete type, such as int or float, for which an explicit parser has been declared,
 		// or it can be a closed generic type, such as List<int> or HashSet<float>, for which no explicit parser has been declared
 		// but instead can be generated from an existing generic parser definition
-		internal static IParameterParser GetParser (Type parseType)
+		internal static IParameterParser GetParser(Type parseType)
 		{
 			if (mParsers.ContainsKey(parseType)) return mParsers[parseType];
 
-			void Throw () { throw new ParserNotFoundException(nameof(parseType)); }
+			void Throw() { throw new ParserNotFoundException(nameof(parseType)); }
 
 			// No concrete parser has been instantiated for this type,
 			// let's see if we can generate one using generic type definitions and reflection
@@ -130,7 +130,12 @@ namespace Cronyx.Console.Parsing
 			if (parseType.IsArray && parseType.GetArrayRank() == 1)
 			{
 				// Special case for parse types that are 1D arrays
-				constructedParserType = typeof(ArrayParser<>).MakeGenericType(new[] { parseType.GetElementType() });
+				constructedParserType = typeof(ArrayParser<>).MakeGenericType(parseType.GetElementType());
+			}
+			else if (TupleParser.IsTupleType(parseType) || TupleParser.IsValueTupleType(parseType))
+			{
+				// Special case for tuple classes
+				constructedParserType = typeof(TupleParser<>).MakeGenericType(parseType);
 			} else
 			{
 				if (parseType.ContainsGenericParameters) Throw(); // Type is an unbounded generic type, we cannot do anything with this as generic arguments are unknown
