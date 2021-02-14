@@ -13,6 +13,7 @@ namespace Cronyx.Console.Parsing
 	{
 		static Parser()
 		{
+			// Char and string parsers
 			AddParser(new StringParser());
 			AddParser(new CharParser());
 
@@ -31,6 +32,7 @@ namespace Cronyx.Console.Parsing
 			AddParser(new FloatingParser<double>("double", x => double.Parse(x)));
 			AddParser(new FloatingParser<decimal>("decimal", x => decimal.Parse(x)));
 
+			// Booleans
 			AddParser(new BoolParser());
 
 			BindGenericParser(typeof(IEnumerable<>), typeof(IEnumerableParser<>));
@@ -49,6 +51,9 @@ namespace Cronyx.Console.Parsing
 			BindGenericParser(typeof(Dictionary<,>), typeof(DictionaryParser<,>));
 			BindGenericParser(typeof(IDictionary<,>), typeof(IDictionaryParser<,>));
 			BindGenericParser(typeof(IReadOnlyDictionary<,>), typeof(IReadOnlyDictionaryParser<,>));
+
+			// Nullable value types
+			BindGenericParser(typeof(Nullable<>), typeof(NullableParser<>));
 
 			// Unity Type parsers
 			AddParser(new Vector2Parser());
