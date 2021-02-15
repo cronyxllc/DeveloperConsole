@@ -89,7 +89,7 @@ namespace Cronyx.Console.Editor
 
 			DoProp(nameof(ConsoleSettings.mEnableConsole), Styles.settingEnabled);
 			DoProp(nameof(ConsoleSettings.mConsoleOpenKey), Styles.settingKeyToOpen);
-			DoProp(nameof(ConsoleSettings.mRedirectConsoleOutput), Styles.settingRedirectOutput);
+			DoProp(nameof(ConsoleSettings.mLogConsoleOutput), Styles.settingRedirectOutput);
 			DoProp(nameof(ConsoleSettings.mRedirectUnityConsoleOutput), Styles.settingRedirectUnityOutput);
 			DoProp(nameof(ConsoleSettings.mSelectAllOnOpen), Styles.settingSelectAllOnOpen);
 			DoProp(nameof(ConsoleSettings.mMaxEntries), Styles.settingMaxEntries);

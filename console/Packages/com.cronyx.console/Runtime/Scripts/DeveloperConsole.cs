@@ -263,7 +263,7 @@ namespace Cronyx.Console
 		public static IEnumerable<CommandData> Commands => mConsole?.mCommands.Values;
 
 		private bool mOpen;
-		private float mCachedTimeScale;
+		private float mCachedTimeScale, mCachedFixedDeltaTime;
 		private string mCurrentWorkingDirectory;
 		private string mHomeDirectory;
 		private GameObject mComponentCommandsRoot;
@@ -584,6 +584,7 @@ namespace Cronyx.Console
 			if (ConsoleSettings.PauseOnOpen.IsEnabled())
 			{
 				mCachedTimeScale = Time.timeScale;
+				mCachedFixedDeltaTime = Time.fixedDeltaTime;
 				Time.timeScale = 0;
 			}
 
@@ -596,7 +597,10 @@ namespace Cronyx.Console
 			mOpen = false;
 
 			if (ConsoleSettings.PauseOnOpen.IsEnabled())
+			{
 				Time.timeScale = mCachedTimeScale;
+				Time.fixedDeltaTime = mCachedFixedDeltaTime;
+			}
 
 			mOnConsoleClosed?.Invoke();
 		}
@@ -629,7 +633,7 @@ namespace Cronyx.Console
 
 		private void RedirectToUnityConsole (string raw, Logger.LogLevel level)
 		{
-			if (!ConsoleSettings.RedirectConsoleOutput.IsEnabled()) return;
+			if (!ConsoleSettings.LogConsoleOutput.IsEnabled()) return;
 
 			// First unregister the unity on log received delegate to prevent an infinite loop
 			Application.logMessageReceived -= HandleUnityLog;

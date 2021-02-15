@@ -117,10 +117,10 @@ namespace Cronyx.Console
 		[SerializeField] internal FeatureMode mRedirectUnityConsoleOutput = FeatureMode.Always;
 
 		/// <summary>
-		/// Gets whether or not the output of the in-game developer console should be mirrored in the Unity console.
+		/// Gets whether or not the output of the in-game developer console should be logged to the Unity console.
 		/// </summary>
-		public static FeatureMode RedirectConsoleOutput => Settings.mRedirectConsoleOutput;
-		[SerializeField] internal FeatureMode mRedirectConsoleOutput = FeatureMode.Never;
+		public static FeatureMode LogConsoleOutput => Settings.mLogConsoleOutput;
+		[SerializeField] internal FeatureMode mLogConsoleOutput = FeatureMode.Never;
 
 		/// <summary>
 		/// Gets the maximum number of entries that can be stored in the console at a given time.
@@ -135,7 +135,7 @@ namespace Cronyx.Console
 		[SerializeField] internal int mMaxInputHistory = 50;
 
 		/// <summary>
-		/// Gets whether or not the game should be paused when the console is opened by setting <see cref="Time.timeScale"/> to <c>0</c>.
+		/// Gets whether or not the game should be paused when the console is opened by setting <see cref="Time.timeScale"/> and <see cref="Time.fixedDeltaTime"/> to <c>0</c>.
 		/// </summary>
 		public static FeatureMode PauseOnOpen => Settings.mPauseOnOpen;
 		[SerializeField] internal FeatureMode mPauseOnOpen = FeatureMode.Always;
@@ -189,7 +189,7 @@ namespace Cronyx.Console
 		[SerializeField] internal string mConsolePrefixCharacter = "$";
 
 		/// <summary>
-		/// If true, all text in the console's input field will be selected when the console opens.
+		/// If enabled, all text in the console's input field will be selected when the console opens.
 		/// </summary>
 		public static FeatureMode SelectAllOnOpen => Settings.mSelectAllOnOpen;
 		[SerializeField] internal FeatureMode mSelectAllOnOpen = FeatureMode.Always;
