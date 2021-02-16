@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: ConsoleSettings
   m_EditorClassIdentifier: 
   mEnableConsole: 3
-  mHomeDirectoryMode: 0
+  mHomeDirectoryMode: 5
   mCustomHomeDirectory: C:/Users/Jacob/AppData/LocalLow/DefaultCompany/DeveloperConsole/SaveData
   mConsoleOpenKey: 96
   mRedirectUnityConsoleOutput: 3
-  mRedirectConsoleOutput: 0
+  mLogConsoleOutput: 0
   mMaxEntries: 200
   mMaxInputHistory: 50
   mPauseOnOpen: 3

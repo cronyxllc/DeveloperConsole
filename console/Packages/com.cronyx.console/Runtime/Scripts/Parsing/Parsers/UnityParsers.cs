@@ -42,9 +42,14 @@ namespace Cronyx.Console.Parsing.Parsers
 		public override string GetFormat() => $"{GroupingChars[0].Beginning}x y z w{GroupingChars[0].End}";
 	}
 
-	public class QuaternionParser : CompoundParser<float, float, float, float, Quaternion>
+	public class QuaternionParser : CompoundParser<float, float, float, float?, Quaternion>
 	{
-		protected override Quaternion GetResult(float t0, float t1, float t2, float t3) => new Quaternion(t0, t1, t2, t3);
+		protected override Quaternion GetResult(float t0, float t1, float t2, float? t3 = null)
+		{
+			if (t3 != null)
+				return new Quaternion(t0, t1, t2, t3 ?? 0);
+			return Quaternion.Euler(t0, t1, t2);
+		}
 
 		public override string GetFormat() => $"{GroupingChars[0].Beginning}x y z w{GroupingChars[0].End}";
 	}
