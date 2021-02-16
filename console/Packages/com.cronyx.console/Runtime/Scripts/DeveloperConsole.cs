@@ -46,10 +46,10 @@ namespace Cronyx.Console
 			}
 		}
 
-		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]	
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
 		internal static DeveloperConsole InitializeSingleton() => Console;
-		
-		private bool EnsureSingleton ()
+
+		private bool EnsureSingleton()
 		{
 			if (!ConsoleSettings.EnableConsole.IsEnabled()) return false;
 			if (Console != this) return false;
@@ -200,9 +200,14 @@ namespace Cronyx.Console
 		/// Splits the given input string into a series of command-line arguments.
 		/// </summary>
 		/// <param name="input">An input string to be split. Leading and trailing whitespace will be trimmed.</param>
-		/// <remarks>See <see cref="SplitArgs(string)"/> for additional remarks.</remarks>
+		/// <remarks>See <see cref="SplitArgs(string, (char Beginning, char Ending)[])"/> for additional remarks.</remarks>
 		/// <returns>A series of command line arguments, using single and double quotations as grouping symbols.</returns>
-		public static string[] SplitArgs(string input) => SplitArgs(input, new [] { ('\"', '\"'), ('\'', '\'') });
+		public static string[] SplitArgs(string input) => SplitArgs(input, new[] { ('"', '"'), ('\'', '\'') });
+
+		/// <summary>
+		/// Contains the indices of the split locations in the original string passed to <see cref="SplitArgs(string)"/> or <see cref="SplitArgs(string, (char Beginning, char Ending)[])"/>.
+		/// </summary>
+		public static IReadOnlyList<int> SplitPositions => ConsoleUtilities.Splits;
 
 		/// <summary>
 		/// Registers a non-persistent console command.
@@ -220,7 +225,7 @@ namespace Cronyx.Console
 		/// <param name="help">An optional help string that may display usage information, subcommands, etc. when requested by the user.</param>
 		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or empty, or if <paramref name="parseCommand"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">Thrown if <paramref name="name"/> is taken by another command.</exception>
-		public static void RegisterCommand (string name, Action<string> parseCommand, string description=null, string help=null)
+		public static void RegisterCommand(string name, Action<string> parseCommand, string description = null, string help = null)
 		{
 			if (string.IsNullOrWhiteSpace(name))
 				throw new ArgumentException("Command name cannot be null or whitespace.");
@@ -239,7 +244,7 @@ namespace Cronyx.Console
 		/// <param name="description">A short, optional description of the command that appears in a list of all commands.</param>
 		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or empty, or if <paramref name="command"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">Thrown if <paramref name="name"/> is taken by another command.</exception>
-		public static void RegisterCommand (string name, Delegate command, string description=null)
+		public static void RegisterCommand(string name, Delegate command, string description = null)
 		{
 			if (string.IsNullOrWhiteSpace(name))
 				throw new ArgumentException("Command name cannot be null or whitespace.");
@@ -255,12 +260,26 @@ namespace Cronyx.Console
 		/// </summary>
 		/// <param name="name">The name of the command to unregister (case-insensitive, leading and trailing whitespace ignored).</param>
 		/// <exception cref="InvalidOperationException">Thrown when <paramref name="name"/> is not a registered command, or when attempting to unregister an essential command, such as "cd," "pwd," or "list".</exception>
-		public static void UnregisterCommand(string name) => mConsole?.Unregister(name);
+		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or whitespace.</exception>
+		public static void UnregisterCommand(string name) => Console?.Unregister(name);
+
+		/// <summary>
+		/// Returns whether or not a command with a given name exists and is registered.
+		/// </summary>
+		/// <param name="name">The name of the command.</param>
+		/// <returns>A boolean value indicating whether or not a command with the given name exists and is registered. Returns false if the console is not enabled.</returns>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or whitespace.</exception>
+		public static bool CommandExists (string name)
+		{
+			if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException(nameof(name));
+			if (Console == null) return false;
+			return Console.mCommands.ContainsKey(name);
+		}
 
 		/// <summary>
 		/// Gets an enumeration of <see cref="CommandData"/> objects containing information about all registered commands.
 		/// </summary>
-		public static IEnumerable<CommandData> Commands => mConsole?.mCommands.Values;
+		public static IEnumerable<CommandData> Commands => Console?.mCommands.Values ?? Enumerable.Empty<CommandData>();
 
 		private bool mOpen;
 		private float mCachedTimeScale, mCachedFixedDeltaTime;
@@ -320,8 +339,11 @@ namespace Cronyx.Console
 			mCommands[name] = command;
 		}
 
-		private void Unregister (string name)
+		private void Unregister(string name)
 		{
+			if (string.IsNullOrWhiteSpace(name))
+				throw new ArgumentException(nameof(name));
+
 			name = name.Trim().ToLower();
 			if (!mCommands.ContainsKey(name))
 				throw new InvalidOperationException($"No command found with name \"{name}\" to unregister.");
@@ -343,9 +365,9 @@ namespace Cronyx.Console
 
 		// Registers and instantiates all persistent commands, i.e., concrete classes that inherit from IConsoleCommand
 		// and are marked with the appropriate attribute
-		private void RegisterPersistentCommands ()
+		private void RegisterPersistentCommands()
 		{
-			void RegisterTypeCommand (Type commandType)
+			void RegisterTypeCommand(Type commandType)
 			{
 				var commandAttribute = commandType.GetCustomAttribute<CommandAttribute>();
 
@@ -369,7 +391,7 @@ namespace Cronyx.Console
 				Register(commandAttribute.Name, new CommandData(commandAttribute.Name, commandType.GetCustomAttribute<EssentialAttribute>() != null, commandAttribute.Description, command));
 			}
 
-			void RegisterMethodCommand (MethodInfo method)
+			void RegisterMethodCommand(MethodInfo method)
 			{
 				var attribute = method.GetCustomAttribute<CommandAttribute>();
 
@@ -401,7 +423,7 @@ namespace Cronyx.Console
 		}
 
 		// Return a list of persistent command types, with essential commands sorted first
-		private static List<Type> GetPersistentCommandTypes ()
+		private static List<Type> GetPersistentCommandTypes()
 		{
 			// First find all classes that are marked with the relevant attribute
 			// Order by descending
@@ -454,7 +476,7 @@ namespace Cronyx.Console
 			return validTypes;
 		}
 
-		private static List<MethodInfo> GetPersistentCommandMethods ()
+		private static List<MethodInfo> GetPersistentCommandMethods()
 		{
 			// First find all methods that are marked with the relevant attribute
 			var flaggedMethods = (from assembly in AppDomain.CurrentDomain.GetAssemblies()
@@ -500,7 +522,7 @@ namespace Cronyx.Console
 
 			// Verify that all command names are distinct and give warnings where they are not
 			foreach (var cmd in all) {
-				var cmdName = cmd.GetCustomAttribute<CommandAttribute>().Name; 
+				var cmdName = cmd.GetCustomAttribute<CommandAttribute>().Name;
 				if (names.Contains(cmdName))
 				{
 					if (cmd is Type t) Logger.Warn(TypeCommandNameTakenWarning(t, cmdName));
@@ -512,7 +534,7 @@ namespace Cronyx.Console
 
 		#endregion Registration
 
-		private string GetHomeDirectory ()
+		private string GetHomeDirectory()
 		{
 			switch (ConsoleSettings.HomeDirectoryMode)
 			{
@@ -540,7 +562,7 @@ namespace Cronyx.Console
 		}
 
 		// Called by ConsoleView when the user has submitted a line to the input field
-		internal void OnInputReceived (string input)
+		internal void OnInputReceived(string input)
 		{
 			// Invoke callback
 			mOnInputSubmitted?.Invoke(input);
@@ -566,7 +588,7 @@ namespace Cronyx.Console
 			LogWarning($"{command}: command not found");
 		}
 
-		private void UpdateDirectory (string newDirectory)
+		private void UpdateDirectory(string newDirectory)
 		{
 			if (!Directory.Exists(newDirectory))
 				throw new DirectoryNotFoundException($"No such directory exists: {newDirectory}");
@@ -576,7 +598,7 @@ namespace Cronyx.Console
 			mOnDirectoryChanged?.Invoke(mCurrentWorkingDirectory);
 		}
 
-		private void OpenConsole ()
+		private void OpenConsole()
 		{
 			if (mOpen) return;
 			mOpen = true;
@@ -591,7 +613,7 @@ namespace Cronyx.Console
 			mOnConsoleOpened?.Invoke();
 		}
 
-		private void CloseConsole ()
+		private void CloseConsole()
 		{
 			if (!mOpen) return;
 			mOpen = false;
@@ -607,12 +629,12 @@ namespace Cronyx.Console
 
 		#region Logging
 
-		private void Write(object message, Logger.LogLevel level, bool redirect=true)
+		private void Write(object message, Logger.LogLevel level, bool redirect = true)
 		{
 			var text = mUI.CreateTextEntry();
 			var raw = message.ToString();
 			text.Text = raw;
-			
+
 			switch (level)
 			{
 				case Logger.LogLevel.Info:
@@ -631,7 +653,7 @@ namespace Cronyx.Console
 			if (redirect) RedirectToUnityConsole(raw, level);
 		}
 
-		private void RedirectToUnityConsole (string raw, Logger.LogLevel level)
+		private void RedirectToUnityConsole(string raw, Logger.LogLevel level)
 		{
 			if (!ConsoleSettings.LogConsoleOutput.IsEnabled()) return;
 
@@ -659,7 +681,7 @@ namespace Cronyx.Console
 				Application.logMessageReceived += HandleUnityLog;
 		}
 
-		private void HandleUnityLog (string logString, string stackTrace, LogType type)
+		private void HandleUnityLog(string logString, string stackTrace, LogType type)
 		{
 			switch (type)
 			{
@@ -680,5 +702,8 @@ namespace Cronyx.Console
 		}
 
 		#endregion Logging
+
+		[Command("test")]
+		static void DoSomething (sbyte s) { }
 	}
 }

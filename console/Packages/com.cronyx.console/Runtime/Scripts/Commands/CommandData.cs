@@ -20,7 +20,7 @@ namespace Cronyx.Console.Commands
 		/// Gets a boolean indicating whether or not this command is essential.
 		/// </summary>
 		/// <remarks>
-		/// Essential commands are registered before all other commands and cannot be unregisted using <see cref="DeveloperConsole.Unregister(string)"/>
+		/// Essential commands are registered before all other commands and cannot be unregistered using <see cref="DeveloperConsole.Unregister(string)"/>
 		/// </remarks>
 		public bool Essential { get; }
 

@@ -20,8 +20,8 @@ namespace Cronyx.Console.Parsing
 		/// </remarks>
 		protected virtual (char Beginning, char End)[] GroupingChars { get; } = new[]
 			{
-				('[', ']'),
-				('(', ')')
+				('(', ')'),
+				('[', ']')
 			};
 
 		/// <summary>

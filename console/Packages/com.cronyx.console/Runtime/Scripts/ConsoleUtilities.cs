@@ -108,7 +108,7 @@ namespace Cronyx.Console
 					if (input[i] == groupingChars[currentGrouping].Ending && !escapeChars.Contains(i))
 					{
 						currentGrouping = -1;
-						if (i == input.Length - 1) AddArgument(i);
+						if (i == input.Length - 1) AddArgument(i+1);
 					}
 					else sb.Append(input[i]); // Not a special character, append the current character.
 				}
