@@ -53,6 +53,7 @@ namespace Cronyx.Console.Parsing.Parsers
 					else if (Parser.IsSpecial(input[0])) break; // Special character not inside quotes, must stop
 				}
 
+				// Append and claim the current character
 				mBuilder.Append(input[0]);
 				input.Claim();
 			}

@@ -702,8 +702,5 @@ namespace Cronyx.Console
 		}
 
 		#endregion Logging
-
-		[Command("test")]
-		static void DoSomething (sbyte s) { }
 	}
 }

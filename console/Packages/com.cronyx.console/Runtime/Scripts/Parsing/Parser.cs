@@ -68,9 +68,23 @@ namespace Cronyx.Console.Parsing
 		}
 
 		private static ISet<char> mSpecialChars = new HashSet<char>();
+
+		/// <summary>
+		/// Gets an <c>IEnumerable&lt;char&gt;</c> containing the current special characters.
+		/// </summary>
 		public static IEnumerable<char> SpecialChars => mSpecialChars;
 
+		/// <summary>
+		/// Adds a special character to the parser.
+		/// </summary>
+		/// <param name="c">The character to be considered special, that is, a grouping character that other parsers should try not to claim.</param>
 		public static void AddSpecialChar(char c) => mSpecialChars.Add(c);
+
+		/// <summary>
+		/// Checks if a character is considered special.
+		/// </summary>
+		/// <param name="c">The character to be considered special, that is, a grouping character that other parsers should try not to claim.</param>
+		/// <returns>A boolean indicating whether or not <paramref name="c"/> is special.</returns>
 		public static bool IsSpecial(char c) => mSpecialChars.Contains(c);
 
 		private static Dictionary<Type, IParameterParser> mParsers = new Dictionary<Type, IParameterParser>();
@@ -721,12 +735,34 @@ namespace Cronyx.Console.Parsing
 		/// </summary>
 		/// <param name="commandName">The name of the command to be used in the usage string.</param>
 		/// <returns>A formatted usage string representing the arguments this <see cref="Parser"/> will parse</returns>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="commandName"/> is null, empty, or whitespace.</exception>
 		public string CalculateUsage (string commandName)
 		{
+			if (string.IsNullOrWhiteSpace(commandName)) throw new ArgumentException(nameof(commandName));
+			commandName = commandName.Trim().ToLower();
 			StringBuilder sb = new StringBuilder()
-				.Append("usage: ")
-				.Append(commandName)
-				.Append(' ');
+				.Append("usage: ");
+
+			void WriteEscaped ()
+			{
+				for (int i = 0; i < commandName.Length; i++)
+				{
+					if (commandName[i] == '"')
+						sb.Append('\\');
+					sb.Append(commandName[i]);
+				}
+			}
+
+			// If the command name contains whitespace, surround it with quotes
+			if (commandName.Any(char.IsWhiteSpace))
+			{
+				sb.Append('"');
+				WriteEscaped();
+				sb.Append('"');
+			}
+			else WriteEscaped();
+
+			sb.Append(' ');
 
 			// Start with mandatory positional arguments
 			int optionalsStartIndex = -1;
@@ -853,14 +889,14 @@ namespace Cronyx.Console.Parsing
 
 				string description = null;
 				if (parameter.Min < 0 && parameter.Max < 0) description = null; // there are no enumeration restrictions on this parameter
-				else if (parameter.Min == 0 && parameter.Max == 0) description = "May not contain any elements";
+				else if (parameter.Max == 0) description = "May not contain any elements";
 				else if (parameter.Min == parameter.Max)
 				{
 					description = $"May contain {parameter.Min} and only {parameter.Min} element";
 					if (parameter.Min > 1) description += "s"; // Make plural
 				}
 				else if (parameter.Min >= 0 && parameter.Max >= 0)
-					description = $"May have between {parameter.Min} and {parameter.Max} element";
+					description = $"May have between {parameter.Min} and {parameter.Max} elements";
 				else if (parameter.Min >= 0)
 				{
 					description = $"Must have at least {parameter.Min} element";

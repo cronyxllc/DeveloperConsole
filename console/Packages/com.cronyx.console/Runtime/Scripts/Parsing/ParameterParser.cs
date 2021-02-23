@@ -63,21 +63,10 @@ namespace Cronyx.Console.Parsing
 	/// <typeparam name="TAlias"></typeparam>
 	public abstract class AliasParser<TBase, TAlias> : ParameterParser<TAlias>
 	{
-		private ParameterParser<TBase> mParser;
-		protected ParameterParser<TBase> BaseParser
-		{
-			get
-			{
-				if (mParser != null) return mParser;
-				mParser = Parser.GetParser<TBase>();
-				return mParser;
-			}
-		}
-
 		public override bool TryParse(ArgumentInput input, out TAlias result)
 		{
 			result = default;
-			if (!BaseParser.TryParse(input, out TBase baseValue)) return false;
+			if (!Parser.GetParser<TBase>().TryParse(input, out TBase baseValue)) return false;
 			result = Convert(baseValue);
 			return true;
 		}
@@ -89,7 +78,7 @@ namespace Cronyx.Console.Parsing
 		/// <returns>An object of type <typeparamref name="TAlias"/></returns>
 		public abstract TAlias Convert (TBase baseValue);
 
-		public override string GetFormat() => BaseParser.GetFormat();
+		public override string GetFormat() => Parser.GetParser<TBase>().GetFormat();
 	}
 
 	/// <summary>
@@ -98,7 +87,7 @@ namespace Cronyx.Console.Parsing
 	/// </summary>
 	/// <typeparam name="TBase"></typeparam>
 	/// <typeparam name="TAlias"></typeparam>
-	public abstract class CovariantParser <TBase, TAlias> : AliasParser<TBase, TAlias> where TBase : TAlias
+	public class CovariantParser <TBase, TAlias> : AliasParser<TBase, TAlias> where TBase : TAlias
 	{
 		public override TAlias Convert(TBase baseValue) => baseValue;
 	}

@@ -26,7 +26,11 @@ namespace Cronyx.Console.Parsing
 
 		private StringBuilder mInput;
 
-		internal ArgumentInput(string input)
+		/// <summary>
+		/// Constructs an <see cref="ArgumentInput"/> object from an input string.
+		/// </summary>
+		/// <param name="input">An input string.</param>
+		public ArgumentInput(string input)
 		{
 			if (input == null) input = string.Empty;
 			mInput = new StringBuilder(input);
@@ -43,13 +47,14 @@ namespace Cronyx.Console.Parsing
 		/// Attempts to match a string at the beginning of the input.
 		/// </summary>
 		/// <remarks>
-		/// If <see cref="Length"/> is less than the length of <paramref name="token"/>, returns false.
+		/// If <paramref name="token"/> is null or <see cref="Length"/> is less than the length of <paramref name="token"/>, returns false.
 		/// </remarks>
 		/// <param name="token">A string to match at the beginning of the input.</param>
 		/// <param name="comparison">The <see cref="StringComparison"/> to use to compare <paramref name="token"/> to the input.</param>
 		/// <returns>A boolean indicating whether or not <paramref name="token"/> was found at the beginning of the input.</returns>
 		public bool Match (string token, StringComparison comparison = StringComparison.InvariantCulture)
 		{
+			if (token == null) return false;
 			if (Length < token.Length) return false;
 			return mInput.ToString(0, token.Length).Equals(token);
 		}

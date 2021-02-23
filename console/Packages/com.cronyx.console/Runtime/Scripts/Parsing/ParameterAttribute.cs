@@ -52,7 +52,13 @@ namespace Cronyx.Console.Parsing
 			{
 				if (string.IsNullOrWhiteSpace(value))
 					throw new ArgumentException(nameof(Meta));
-				mMetaVar = value.Trim();
+
+				var val = value.Trim();
+
+				if (val.Any(c => char.IsWhiteSpace(c)))
+					throw new ArgumentException("Metavariable names may not contain whitespace characters.");
+
+				mMetaVar = val;
 			}
 		}
 
