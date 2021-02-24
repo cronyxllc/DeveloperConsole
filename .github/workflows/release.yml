@@ -1,0 +1,13 @@
+# Release Workflow:
+# Performs three actions whenever a release is published:
+#   (1) Builds and adds a .unitypackage file containing the DeveloperConsole package to the GitHub release
+#   (2) Creates/updates the 'upm' branch so that it contains the DeveloperConsole as its root directory
+#   (3) Tags the 'upm' branch with the current version number, as specified by the release
+
+
+name: Release
+
+on:
+  release:
+    types: [publish]
+    
