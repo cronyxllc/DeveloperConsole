@@ -1,13 +1,39 @@
 # Release Workflow:
 # Performs three actions whenever a release is published:
-#   (1) Builds and adds a .unitypackage file containing the DeveloperConsole package to the GitHub release
+#   (1) Compresses the package to a tar.gz file and adds it to the GitHub release
 #   (2) Creates/updates the 'upm' branch so that it contains the DeveloperConsole as its root directory
 #   (3) Tags the 'upm' branch with the current version number, as specified by the release
-
 
 name: Release
 
 on:
   release:
     types: [publish]
+    
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    
+    env:
+      TAR_OUTPUT_PATH: DeveloperConsole_{{ github.event.release.tag_name }}.tar.gz
+    
+    steps:
+    
+    # Checkout the repository and compress the package contents into a tar.gz file
+    - uses: actions/checkout@v2
+    - run: |
+        tar "${{ env.TAR_OUTPUT_PATH }}" "console/Packages/com.cronyx.console"
+        
+    # Upload the tar.gz file to the release, using the upload URL
+    # of the release that triggered this workflow
+    - name: "Upload package tar.gz"
+      uses: actions/upload-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./${{ env.TAR_OUTPUT_PATH }}
+        asset_name: ${{ env.TAR_OUTPUT_PATH }}
+        asset_content_type: application/gzip
+        
     
