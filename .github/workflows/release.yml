@@ -52,3 +52,11 @@ jobs:
         git tag -d "${{ github.event.release.tag_name }}" # Delete tag that was created with the new release
         git tag "${{ github.event.release.tag_name }}" # Create new tag references 'upm' branch
         git push --tags # Push new tag
+        
+    # After having deleted the old tag that was originally associated with the release that
+    # triggered this workflow, that release will now be marked as a draft release and must be republished.
+    - uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        release_id: ${{ github.event.release.id }}
