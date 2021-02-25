@@ -47,7 +47,6 @@ jobs:
      # Afterwards, change the git tag to reference the 'upm' branch
     - run: |
         git fetch
-        git pull
         git checkout upm
         git push origin -d ${{ github.event.release.tag_name }} # Delete old tag on remote
         git tag -d "${{ github.event.release.tag_name }}" # Delete tag that was created with the new release
