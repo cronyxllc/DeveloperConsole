@@ -20,7 +20,7 @@ jobs:
     - uses: actions/checkout@v2
     
     #  Compress the package contents into a tar.gz file
-    - run: tar "${{ env.TAR_OUTPUT_PATH }}" "console/Packages/com.cronyx.console"
+    - run: tar -czvf "${{ env.TAR_OUTPUT_PATH }}" "console/Packages/com.cronyx.console"
     
     - name: Create Release
       id: create_release
