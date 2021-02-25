@@ -1,44 +1,30 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
-    branches:
-      - main
-    
+  release:
+    types: [publish]
+
 jobs:
   bundle:
     runs-on: ubuntu-latest
-    
+
     env:
-      TAR_OUTPUT_PATH: DeveloperConsole_{{ github.ref }}.tar.gz
-    
+      TAR_OUTPUT_PATH: DeveloperConsole_{{ github.event.release.tag_name }}.tar.gz
+
     steps:
-    
-    # Checkout the repository
+
+    # Checkout the repository and compress the package contents into a tar.gz file
     - uses: actions/checkout@v2
-    
-    #  Compress the package contents into a tar.gz file
     - run: tar -czvf "${{ env.TAR_OUTPUT_PATH }}" "console/Packages/com.cronyx.console"
-    
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
         
+    # Upload the tar.gz file to the release, using the upload URL
+    # of the release that triggered this workflow
     - name: "Upload package tar.gz"
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./${{ env.TAR_OUTPUT_PATH }}
         asset_name: ${{ env.TAR_OUTPUT_PATH }}
         asset_content_type: application/gzip
