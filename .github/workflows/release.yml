@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      TAR_OUTPUT_PATH: DeveloperConsole_{{ github.event.release.tag_name }}.tar.gz
+      TAR_OUTPUT_PATH: DeveloperConsole_${{ github.event.release.tag_name }}.tar.gz
 
     steps:
 
