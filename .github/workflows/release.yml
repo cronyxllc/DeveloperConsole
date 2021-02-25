@@ -5,16 +5,16 @@ on:
     types: [published]
 
 jobs:
+
+  # A job to bundle the package contents into a tar.gz and upload them to the release
   bundle:
     runs-on: ubuntu-latest
-
     env:
       TAR_OUTPUT_PATH: DeveloperConsole_${{ github.event.release.tag_name }}.tar.gz
-
     steps:
-
-    # Checkout the repository and compress the package contents into a tar.gz file
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2 # Checkout the repository
+    
+    # Compress the package contents into a tar.gz file
     - run: tar -czvf "${{ env.TAR_OUTPUT_PATH }}" "console/Packages/com.cronyx.console"
         
     # Upload the tar.gz file to the release, using the upload URL
@@ -28,5 +28,26 @@ jobs:
         asset_path: ./${{ env.TAR_OUTPUT_PATH }}
         asset_name: ${{ env.TAR_OUTPUT_PATH }}
         asset_content_type: application/gzip
-        
     
+  # A job to handle synchronizing the upm branch with the current release
+  upm:
+    needs: bundle
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2 # Checkout the repository
+    
+    # Push the package root directory to the 'upm' branch
+    - uses: s0/git-publish-subdir-action@develop
+      env:
+        REPO: self
+        BRANCH: upm
+        FOLDER: console/Packages/com.cronyx.console
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     
+     # Afterwards, change the git tag to reference the 'upm' branch
+    - run: |
+        git checkout upm |
+        git tag -d "${{ github.event.release.tag_name }}" | # Delete tag that was created with the new release
+        git tag "${{ github.event.release.tag_name }}" | # Create new tag references 'upm' branch
+        git push origin -d ${{ github.event.release.tag_name }} | # Delete old tag on remote
+        git push --tags # Push new tag
