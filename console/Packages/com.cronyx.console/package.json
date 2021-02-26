@@ -6,7 +6,7 @@
   "unity": "2020.2",
   "unityRelease": "1f1",
   "dependencies": {
-    "com.unity.textmeshpro": "3.0.1"
+    "com.unity.textmeshpro": "2.0.1"
   },
   "keywords": [
     "console",
