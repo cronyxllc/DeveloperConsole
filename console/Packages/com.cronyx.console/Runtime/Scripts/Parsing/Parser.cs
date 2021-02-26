@@ -622,7 +622,7 @@ namespace Cronyx.Console.Parsing
 				return true;
 			}
 
-			bool VerifySwitch (bool canAcceptOptions)
+			bool VerifySwitch (bool acceptOptions)
 			{
 				// Switchs (such as -f or --file) can often be confused with negative numeric positional
 				// arguments -6.05 or -.8
@@ -631,7 +631,7 @@ namespace Cronyx.Console.Parsing
 				// If this function returns true, the parser should treat the incoming input as a switch,
 				// if it returns false, it should treat it as a positional argument.
 
-				if (argInput[0] == '-' && canAcceptOptions)
+				if (argInput[0] == '-' && acceptOptions)
 				{
 					if (argInput.Length >= 2)
 					{

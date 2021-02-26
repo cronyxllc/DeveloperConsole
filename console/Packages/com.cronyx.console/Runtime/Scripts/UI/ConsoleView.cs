@@ -9,6 +9,9 @@ using TMPro;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
+// Disable 'Field is never asigned to, and will always have its default value null'
+#pragma warning disable CS0649
+
 namespace Cronyx.Console.UI
 {
 	public class ConsoleView : MonoBehaviour
