@@ -31,6 +31,20 @@ namespace Cronyx.Console
 				// Check if the console has been enabled first
 				if (!ConsoleSettings.EnableConsole.IsEnabled()) return null;
 
+				// Check that the TMP Resources have been imported.
+				if (TMPro.TMP_Settings.instance == null)
+				{
+#if UNITY_EDITOR
+					Logger.Warn("It looks like you haven't imported the TextMeshPro Essential Resources! " +
+						"The DeveloperConsole requires these resources before it can be used, so please import them by first exitting playmode and clicking 'Import TMP Essentials' in the dialog that just opened, " +
+						"or by going to 'Window > TextMeshPro > Import TMP Essential Resources'");
+#else
+					Logger.Warn("It looks like you haven't imported the TextMeshPro Essential Resources! " +
+						"The DeveloperConsole requires these resources before it can be used, so please import them by going to 'Window > TextMeshPro > Import TMP Essential Resources'");
+#endif
+					return null;
+				}
+
 				if (mConsole == null)
 					mConsole = FindObjectOfType<DeveloperConsole>();
 				if (mConsole == null)
@@ -56,7 +70,7 @@ namespace Cronyx.Console
 			return true;
 		}
 
-		#endregion Singleton
+#endregion Singleton
 
 		/// <summary>
 		/// Gets whether or not the developer console is enabled and accessible. This depends on the value of <see cref="ConsoleSettings.EnableConsole"/>
@@ -291,7 +305,7 @@ namespace Cronyx.Console
 
 		private ConsoleView mUI;
 
-		#region UnityCallbacks
+#region UnityCallbacks
 
 		private void Awake()
 		{
@@ -326,9 +340,9 @@ namespace Cronyx.Console
 			Application.logMessageReceived -= HandleUnityLog;
 		}
 
-		#endregion UnityCallbacks
+#endregion UnityCallbacks
 
-		#region Registration
+#region Registration
 
 		private void Register(string name, CommandData command)
 		{
@@ -532,7 +546,7 @@ namespace Cronyx.Console
 		}
 #endif
 
-		#endregion Registration
+#endregion Registration
 
 		private string GetHomeDirectory()
 		{
@@ -627,7 +641,7 @@ namespace Cronyx.Console
 			mOnConsoleClosed?.Invoke();
 		}
 
-		#region Logging
+#region Logging
 
 		private void Write(object message, Logger.LogLevel level, bool redirect = true)
 		{
@@ -701,6 +715,6 @@ namespace Cronyx.Console
 			}
 		}
 
-		#endregion Logging
+#endregion Logging
 	}
 }

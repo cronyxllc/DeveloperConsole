@@ -5,6 +5,7 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
+using TMPro;
 
 namespace Cronyx.Console.Editor
 {
@@ -12,6 +13,9 @@ namespace Cronyx.Console.Editor
 	{
 		private static class Styles
 		{
+			public static readonly GUIContent tmpResourcesNotFound = new GUIContent("It looks like the TextMeshPro Essential Resources have not been imported. " +
+				"Please import them by going to Window > TextMeshPro > Import TMP Essential Resources, or by clicking 'Import TMP Essentials' in the dialog that just opened.");
+
 			public static readonly GUIContent titleGeneral = new GUIContent("General Settings", "Settings that control the general function of the developer console.");
 			public static readonly GUIContent settingEnabled = new GUIContent("Enabled", "Determines when to enable the in-game developer console.");
 			public static readonly GUIContent settingKeyToOpen = new GUIContent("Open Key", "The default key that opens the in-game developer console.");
@@ -42,6 +46,8 @@ namespace Cronyx.Console.Editor
 		private static readonly string kSettingsPath = Path.Combine("Assets", "Developer Console", "Resources", "ConsoleSettings.asset");
 		private static readonly string kSettingsContainerPath = Path.GetDirectoryName(kSettingsPath);
 
+		private bool mTMPResourcesFound;
+
 		private ConsoleSettings mSettings;
 		private ConsoleSettings Settings
 		{
@@ -63,19 +69,35 @@ namespace Cronyx.Console.Editor
 			}
 		}
 
+		private void OnEnable()
+		{
+			if (TMP_Settings.instance == null)
+			{
+				mTMPResourcesFound = false;
+				TMPro_EventManager.RESOURCE_LOAD_EVENT.Add(() => mTMPResourcesFound = true);
+			}
+			else mTMPResourcesFound = true;
+		}
+
 		private void OnGUI()
 		{
-			Target.Update();
+			if (!mTMPResourcesFound) EditorGUILayout.HelpBox(Styles.tmpResourcesNotFound.text, MessageType.Error);
 
-			using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+			// Disable settings if TMP resources have not been loaded
+			using (new EditorGUI.DisabledGroupScope(!mTMPResourcesFound))
 			{
-				BasicSettings();
+				Target.Update();
+
+				using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+				{
+					BasicSettings();
+				}
+
+				Settings.OnValidate();
+
+				if (Target.ApplyModifiedProperties())
+					EditorUtility.SetDirty(Settings);
 			}
-
-			Settings.OnValidate();
-
-			if (Target.ApplyModifiedProperties())
-				EditorUtility.SetDirty(Settings);
 		}
 
 		private void DoProp(string name, GUIContent label) => DoProp(GetProp(name), label);
