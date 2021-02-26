@@ -5,7 +5,7 @@
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.unity.textmeshpro": "2.0.1"
+        "com.unity.textmeshpro": "3.0.1"
       }
     },
     "com.unity.collab-proxy": {
