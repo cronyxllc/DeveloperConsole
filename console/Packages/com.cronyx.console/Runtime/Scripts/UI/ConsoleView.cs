@@ -152,8 +152,12 @@ namespace Cronyx.Console.UI
 				else if (Input.GetKeyDown(KeyCode.DownArrow))
 					CycleInputHistory(-1);
 
-				if (EventSystem.current.currentSelectedGameObject == null)
-					InputField.ActivateInputField();
+				var currentEvent = EventSystem.current;
+				if (currentEvent != null)
+				{
+					if (EventSystem.current.currentSelectedGameObject == null)
+						InputField.ActivateInputField();
+				}
 			}
 		}
 
