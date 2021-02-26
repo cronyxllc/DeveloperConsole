@@ -26,6 +26,7 @@ namespace Cronyx.Console.UI
  
 		[Header("Prefabs")]
 		[SerializeField] private GameObject TextEntryPrefab;
+		[SerializeField] private GameObject EventSystemPrefab;
 
 		private ViewSettings mViewSettings;
 
@@ -57,6 +58,14 @@ namespace Cronyx.Console.UI
 			DeveloperConsole.OnConsoleOpened += OnConsoleOpened;
 			DeveloperConsole.OnConsoleClosed += OnConsoleClosed;
 			DeveloperConsole.OnDirectoryChanged += OnDirectoryChanged;
+
+			// Check if there is currently an EventSystem active.
+			// If not, the UI will not work, and we must instantiate one
+			if (EventSystem.current == null)
+			{
+				var eventSystemInstance = Instantiate(EventSystemPrefab);
+				EventSystem.current = eventSystemInstance.GetComponent<EventSystem>();
+			}
 
 			mViewSettings = ConsoleSettings.GetViewSettings();
 			Overlay.alpha = ConsoleSettings.ConsoleOverlayAlpha;
@@ -152,12 +161,8 @@ namespace Cronyx.Console.UI
 				else if (Input.GetKeyDown(KeyCode.DownArrow))
 					CycleInputHistory(-1);
 
-				var currentEvent = EventSystem.current;
-				if (currentEvent != null)
-				{
-					if (EventSystem.current.currentSelectedGameObject == null)
-						InputField.ActivateInputField();
-				}
+				if (EventSystem.current.currentSelectedGameObject == null)
+					InputField.ActivateInputField();
 			}
 		}
 

@@ -220,6 +220,8 @@ MonoBehaviour:
   InputFieldPrefix: {fileID: 1280848473793181829}
   TextEntryPrefab: {fileID: 1257879537222990738, guid: ca98bb70fe69c344b84aebd865732b92,
     type: 3}
+  EventSystemPrefab: {fileID: 5079667886617642612, guid: a9047cea789388641b520920b7bbfae2,
+    type: 3}
 --- !u!1 &2637240047475702021
 GameObject:
   m_ObjectHideFlags: 0
