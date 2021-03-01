@@ -52,7 +52,8 @@ public class ScreenshotEntry : ConsoleEntry
 	}
 }
 
-[Command("screenshot")]
+// Uncomment to use the screenshot command
+//[Command("screenshot")]
 public class ScreenshotCommand : MonoBehaviour, IConsoleCommand
 {
 	public string Help => "Takes and displays a screenshot";
@@ -65,7 +66,7 @@ public class ScreenshotCommand : MonoBehaviour, IConsoleCommand
 		mCoroutine = StartCoroutine(ShowScreenshot());
 	}
 
-	// An IEnumerator that will take and show the screenshot
+	// A coroutine that will take and show the screenshot
 	private IEnumerator ShowScreenshot()
 	{
 		yield return new WaitForEndOfFrame();
