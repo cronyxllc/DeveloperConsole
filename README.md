@@ -93,7 +93,15 @@ public class MyCommand : IConsoleCommand
 
 ## Installation
 
-### Via PackageInstaller (drag-and-drop)
+### Prerequisites
+
+1. Unity `2020.2` or greater
+2. TextMeshPro package `3.0.1` or greater installed in your project. Comes built-in with Unity `2020.2` or greater.
+
+### Installation Guides
+
+<details>
+  <summary><b>Via PackageInstaller (drag-and-drop)</b></summary>
 
 1. Download the [installer `.unitypackage`](https://package-installer.glitch.me/v1/installer/OpenUPM/com.cronyx.console?registry=https%3A%2F%2Fpackage.openupm.com) to your machine.
 2. Import the `.unitypackage` by dragging and dropping it onto the Unity window or by going to <kbd>Assets > Import Package > Custom Package...</kbd> and selecting the package.
@@ -102,8 +110,10 @@ public class MyCommand : IConsoleCommand
 5. You're all set!
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-OpenUPM">See more information here!</a></sup>
+</details>
 
-### Via OpenUPM
+<details>
+  <summary><b>Via OpenUPM</b></summary>
 
 Run:
 
@@ -114,9 +124,10 @@ Run:
 from within your project directory.
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-PackageInstaller">See more information here!</a></sup>
+</details>
 
-### Via UPM (Tarball)
-
+<details>
+<summary><b>Via UPM (Tarball)</b></summary>
 <ol>
   <li>Navigate to <a href="https://github.com/cronyxllc/DeveloperConsole/releases">Releases</a> and choose a release.</li>
   <li>Download the DeveloperConsole_v*.tar.gz file for that release.</li>
@@ -127,9 +138,10 @@ from within your project directory.
 </ol>
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Tarball)">See more information here!</a></sup>
+</details>
 
-### Via UPM (Git)
-
+<details>
+<summary><b>Via UPM (Git)</b></summary>
 <ol>
   <li>Open the Package Manager window (<kbd>Window > Package Manager</kbd>), click the ➕, and then click <code>Add package from git...</code></li>
 <img src="https://raw.githubusercontent.com/cronyxllc/DeveloperConsole/main/docs/images/Install_UPMGit_URL.PNG" width=300px/>
@@ -139,3 +151,4 @@ from within your project directory.
 </ol>
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Git)">See more information here!</a></sup>
+</details>
