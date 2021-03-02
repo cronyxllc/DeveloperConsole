@@ -2,7 +2,8 @@
 
 # DeveloperConsole
 
-[![openupm](https://img.shields.io/npm/v/com.cronyx.console?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.cronyx.console/) [![Release](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml/badge.svg)](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml) 
+[![Release](https://img.shields.io/github/v/release/cronyxllc/DeveloperConsole)](https://github.com/cronyxllc/DeveloperConsole/releases)
+[![openupm](https://img.shields.io/npm/v/com.cronyx.console?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.cronyx.console/) [![Release](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml/badge.svg)](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml)
 
 A lightweight, in-game developer console for Unity
 
@@ -87,13 +88,24 @@ public class MyCommand : IConsoleCommand
 </pre>
   </li>
   <li>
+  Access filesystem through built-in commands like <code>ls</code> and <code>pwd</code>.
+  </li>
+  <li>
   <p>A detailed documentation of all of these features and more over at <a href="https://github.com/cronyxllc/DeveloperConsole/wiki">the wiki</a>!</p>
   </li>
 </ul>
 
 ## Installation
 
-### Via PackageInstaller (drag-and-drop)
+### Prerequisites
+
+1. Unity `2020.2` or greater
+2. TextMeshPro package `3.0.1` or greater installed in your project. Comes built-in with Unity `2020.2` or greater.
+
+### Installation Guides
+
+<details>
+  <summary><b>Via PackageInstaller (drag-and-drop)</b></summary>
 
 1. Download the [installer `.unitypackage`](https://package-installer.glitch.me/v1/installer/OpenUPM/com.cronyx.console?registry=https%3A%2F%2Fpackage.openupm.com) to your machine.
 2. Import the `.unitypackage` by dragging and dropping it onto the Unity window or by going to <kbd>Assets > Import Package > Custom Package...</kbd> and selecting the package.
@@ -102,8 +114,10 @@ public class MyCommand : IConsoleCommand
 5. You're all set!
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-OpenUPM">See more information here!</a></sup>
+</details>
 
-### Via OpenUPM
+<details>
+  <summary><b>Via OpenUPM</b></summary>
 
 Run:
 
@@ -114,9 +128,10 @@ Run:
 from within your project directory.
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-PackageInstaller">See more information here!</a></sup>
+</details>
 
-### Via UPM (Tarball)
-
+<details>
+<summary><b>Via UPM (Tarball)</b></summary>
 <ol>
   <li>Navigate to <a href="https://github.com/cronyxllc/DeveloperConsole/releases">Releases</a> and choose a release.</li>
   <li>Download the DeveloperConsole_v*.tar.gz file for that release.</li>
@@ -127,9 +142,10 @@ from within your project directory.
 </ol>
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Tarball)">See more information here!</a></sup>
+</details>
 
-### Via UPM (Git)
-
+<details>
+<summary><b>Via UPM (Git)</b></summary>
 <ol>
   <li>Open the Package Manager window (<kbd>Window > Package Manager</kbd>), click the ➕, and then click <code>Add package from git...</code></li>
 <img src="https://raw.githubusercontent.com/cronyxllc/DeveloperConsole/main/docs/images/Install_UPMGit_URL.PNG" width=300px/>
@@ -139,3 +155,51 @@ from within your project directory.
 </ol>
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Git)">See more information here!</a></sup>
+</details>
+
+## Getting started
+
+### Using the console
+
+By default, you can open the in-game console by pressing the backquote key (`` ` ``) (or tilde, `~`, on QWERTY keyboards). This will open the console UI and allow you to start entering commands. For your first command, try printing the working directory:
+
+```
+~ $ pwd
+C:\Users\MyUser\AppData\LocalLow\DefaultCompany\DeveloperConsole
+~ $ █
+```
+
+Just like in a Bash console, past inputs can be cycled through using the up and down arrow keys. For a list of all commands that can be called, enter `$ help`.
+
+### Customizing the console
+
+To customize the console's settings, go to <kbd>Window > DeveloperConsole > Settings</kbd>. This will create a `ConsoleSettings` asset in your projects directory. Hover over any of the settings to get a description of what that feature does. For a more detailed description of the console's settings, see the [settings documentation](Console-settings).
+
+### Adding commands to the console
+
+The `DeveloperConsole` package was created with the intention that you would extend its functionality by creating console commands specific to your own project. Creating a console command can be as simple as tagging a static method with a `CommandAttribute`:
+
+```csharp
+[Command("cmd")]
+public static void MyCommand (Vector3 v)
+{
+    // Your command's code
+}
+```
+
+and calling it like so:
+
+```
+~ $ cmd (1 2 3)
+~ $ █
+```
+
+or as complicated as creating a custom class that manually parses command-line arguments. See the documentation on [console commands](Console-Commands) for more information on creating your own commands. 
+
+## Contributing
+
+Please feel free to contribute to this project! If you'd like to contribute, please do any of the following:
+
+* ‼️ Let others know about this project! We'd like to get the word out!
+* 🐛 [Open an issue with a bug report or feature request.](https://github.com/cronyxllc/DeveloperConsole/issues/new/choose)
+* ➕ Open a pull request with a change or new feature. Please let us know before you start working to prevent development conflicts.
