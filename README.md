@@ -2,7 +2,8 @@
 
 # DeveloperConsole
 
-[![openupm](https://img.shields.io/npm/v/com.cronyx.console?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.cronyx.console/) [![Release](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml/badge.svg)](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml) 
+[![Release](https://img.shields.io/github/v/release/cronyxllc/DeveloperConsole)](https://github.com/cronyxllc/DeveloperConsole/releases)
+[![openupm](https://img.shields.io/npm/v/com.cronyx.console?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/com.cronyx.console/) [![Release](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml/badge.svg)](https://github.com/cronyxllc/DeveloperConsole/actions/workflows/release.yml)
 
 A lightweight, in-game developer console for Unity
 
@@ -194,3 +195,11 @@ and calling it like so:
 ```
 
 or as complicated as creating a custom class that manually parses command-line arguments. See the documentation on [console commands](Console-Commands) for more information on creating your own commands. 
+
+## Contributing
+
+Please feel free to contribute to this project! If you'd like to contribute, please do any of the following:
+
+* ‼️ Let others know about this project! We'd like to get the word out about this package!
+* 🐛 [Open an issue with a bug report or feature request.](https://github.com/cronyxllc/DeveloperConsole/issues/new/choose)
+* ➕ Open a pull request with a change or new feature. Please let us know before you start working to prevent development conflicts.
