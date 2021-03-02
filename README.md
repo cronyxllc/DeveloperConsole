@@ -23,7 +23,7 @@ public static void CreateCube (Vector3 pos, float scale)
 &nbsp;
 // $ cube (1 2 3) 2
 // Creates a cube at (1, 2, 3) with scale 2.0f
-    </pre>
+</pre>
   </li>
   <li>
     <p>Parsing support for all basic C# types, <code>IEnumerable&lt;T&gt;</code>, <code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey, TValue&gt;</code>, and <a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Supported-parameter-types">many more</a>.</p>
@@ -61,7 +61,7 @@ public static void CustomCommand(
 //                    Can have at most 4 elements
 //     -a, --flag     A flag
 //     -b, --switch   A switch
-  </pre>
+</pre>
   </li>
   
   <li>
@@ -84,7 +84,7 @@ public class MyCommand : IConsoleCommand
     // Parse command line input passed to this command
   }
 }
-  </pre>
+</pre>
   </li>
   <li>
   <p>A detailed documentation of all of these features and more over at <a href="https://github.com/cronyxllc/DeveloperConsole/wiki">the wiki</a>!</p>
@@ -121,7 +121,7 @@ from within your project directory.
   <li>Navigate to <a href="https://github.com/cronyxllc/DeveloperConsole/releases">Releases</a> and choose a release.</li>
   <li>Download the DeveloperConsole_v*.tar.gz file for that release.</li>
   <li>Open the Package Manager window (<kbd>Window > Package Manager</kbd>), click the ➕, and then click <code>Add package from tarball...</code></li>
-<img src="https://github.com/cronyxllc/DeveloperConsole/blob/main/docs/images/Install_UPMTarball.PNG" width=300px/>
+<img src="https://raw.githubusercontent.com/cronyxllc/DeveloperConsole/main/docs/images/Install_UPMTarball.PNG" width=300px/>
   <li>Select the tarball file you just downloaded, and then click <kbd>Open</kbd>.</li>
   <li>You're all set!</li>
 </ol>
@@ -132,7 +132,7 @@ from within your project directory.
 
 <ol>
   <li>Open the Package Manager window (<kbd>Window > Package Manager</kbd>), click the ➕, and then click <code>Add package from git...</code></li>
-<img src="https://github.com/cronyxllc/DeveloperConsole/blob/main/docs/images/Install_UPMGit_URL.PNG" width=300px/>
+<img src="https://raw.githubusercontent.com/cronyxllc/DeveloperConsole/main/docs/images/Install_UPMGit_URL.PNG" width=300px/>
   <li>Enter <code>https://github.com/cronyxllc/DeveloperConsole.git#upm</code> for the URL when prompted.</li>
   <li>Click <kbd>Add</kbd> and wait a moment.</li>
   <li>You're all set!</li>
