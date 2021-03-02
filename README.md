@@ -87,6 +87,9 @@ public class MyCommand : IConsoleCommand
 </pre>
   </li>
   <li>
+  Access filesystem through built-in commands like <code>ls</code> and <code>pwd</code>.
+  </li>
+  <li>
   <p>A detailed documentation of all of these features and more over at <a href="https://github.com/cronyxllc/DeveloperConsole/wiki">the wiki</a>!</p>
   </li>
 </ul>
@@ -152,3 +155,42 @@ from within your project directory.
 
 <sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Git)">See more information here!</a></sup>
 </details>
+
+## Getting started
+
+### Using the console
+
+By default, you can open the in-game console by pressing the backquote key (`` ` ``) (or tilde, `~`, on QWERTY keyboards). This will open the console UI and allow you to start entering commands. For your first command, try printing the working directory:
+
+```
+~ $ pwd
+C:\Users\MyUser\AppData\LocalLow\DefaultCompany\DeveloperConsole
+~ $ █
+```
+
+Just like in a Bash console, past inputs can be cycled through using the up and down arrow keys. For a list of all commands that can be called, enter `$ help`.
+
+### Customizing the console
+
+To customize the console's settings, go to <kbd>Window > DeveloperConsole > Settings</kbd>. This will create a `ConsoleSettings` asset in your projects directory. Hover over any of the settings to get a description of what that feature does. For a more detailed description of the console's settings, see the [settings documentation](Console-settings).
+
+### Adding commands to the console
+
+The `DeveloperConsole` package was created with the intention that you would extend its functionality by creating console commands specific to your own project. Creating a console command can be as simple as tagging a static method with a `CommandAttribute`:
+
+```csharp
+[Command("cmd")]
+public static void MyCommand (Vector3 v)
+{
+    // Your command's code
+}
+```
+
+and calling it like so:
+
+```
+~ $ cmd (1 2 3)
+~ $ █
+```
+
+or as complicated as creating a custom class that manually parses command-line arguments. See the documentation on [console commands](Console-Commands) for more information on creating your own commands. 
