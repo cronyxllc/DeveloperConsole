@@ -200,6 +200,6 @@ or as complicated as creating a custom class that manually parses command-line a
 
 Please feel free to contribute to this project! If you'd like to contribute, please do any of the following:
 
-* ‼️ Let others know about this project! We'd like to get the word out about this package!
+* ‼️ Let others know about this project! We'd like to get the word out!
 * 🐛 [Open an issue with a bug report or feature request.](https://github.com/cronyxllc/DeveloperConsole/issues/new/choose)
 * ➕ Open a pull request with a change or new feature. Please let us know before you start working to prevent development conflicts.
