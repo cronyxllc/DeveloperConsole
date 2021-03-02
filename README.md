@@ -30,13 +30,13 @@ public static void CreateCube (Vector3 pos, float scale)
   </li>
   
   <li>
-  <p>Highly customizable <code>GetOpt</code> command syntax and automatic help text generation:</p>
+  <p>Fully customizable <code>GetOpt</code> command syntax and automatic help text generation:</p>
   
   <pre lang=csharp>
 [Command("showcase", Description = "Showcases the flexibility of the command parser.")]
 public static void CustomCommand(
   [Positional(Description = "The first positional", Meta = "FOO")] Vector3 posOne,
-  [Positional(Description = "The second positional", Max = 4, Meta = "BAR", Optional = true)] IEnumerable<string> posTwo,
+  [Positional(Description = "The second positional", Max = 4, Meta = "BAR", Optional = true)] IEnumerable&lt;string&gt; posTwo,
   [Switch('a', LongName = "flag", Description = "A flag")] bool flag,
   [Switch('b', LongName = "switch", Description = "A switch", Meta = "STR")] string @switch)
 {
