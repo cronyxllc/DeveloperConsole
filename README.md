@@ -88,3 +88,52 @@ public class MyCommand : IConsoleCommand
   <p>A detailed documentation of all of these features and more over at <a href="https://github.com/cronyxllc/DeveloperConsole/wiki">the wiki</a>!</p>
   </li>
 </ul>
+
+## Installation
+
+### Via PackageInstaller (drag-and-drop)
+
+1. Download the [installer `.unitypackage`](https://package-installer.glitch.me/v1/installer/OpenUPM/com.cronyx.console?registry=https%3A%2F%2Fpackage.openupm.com) to your machine.
+2. Import the `.unitypackage` by dragging and dropping it onto the Unity window or by going to <kbd>Assets > Import Package > Custom Package...</kbd> and selecting the package.
+3. Import everything by clicking <kbd>Import</kbd>.
+4. Give the installer a moment to add the appropriate OpenUPM registries to your project.
+5. You're all set!
+
+<sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-OpenUPM">See more information here!</a></sup>
+
+### Via OpenUPM
+
+Run:
+
+```
+~/MyProject $ openupm add com.cronyx.console
+```
+
+from within your project directory.
+
+<sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-PackageInstaller">See more information here!</a></sup>
+
+### Via UPM (Tarball)
+
+<ol>
+  <li>Navigate to <a href="https://github.com/cronyxllc/DeveloperConsole/releases">Releases</a> and choose a release.</li>
+  <li>Download the DeveloperConsole_v*.tar.gz file for that release.</li>
+  <li>Open the Package Manager window (<kbd>Window > Package Manager</kbd>), click the ➕, and then click <code>Add package from tarball...</code></li>
+<img src="https://github.com/cronyxllc/DeveloperConsole/blob/main/docs/images/Install_UPMTarball.PNG" width=300px/>
+  <li>Select the tarball file you just downloaded, and then click <kbd>Open</kbd>.</li>
+  <li>You're all set!</li>
+</ol>
+
+<sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Tarball)">See more information here!</a></sup>
+
+### Via UPM (Git)
+
+<ol>
+  <li>Open the Package Manager window (<kbd>Window > Package Manager</kbd>), click the ➕, and then click <code>Add package from git...</code></li>
+<img src="https://github.com/cronyxllc/DeveloperConsole/blob/main/docs/images/Install_UPMGit_URL.PNG" width=300px/>
+  <li>Enter <code>https://github.com/cronyxllc/DeveloperConsole.git#upm</code> for the URL when prompted.</li>
+  <li>Click <kbd>Add</kbd> and wait a moment.</li>
+  <li>You're all set!</li>
+</ol>
+
+<sup><a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Installing-via-UPM-(Git)">See more information here!</a></sup>
