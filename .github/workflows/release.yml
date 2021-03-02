@@ -55,7 +55,7 @@ jobs:
       
     # Move main README file into the upm branch
     - run: |
-        git checkout main README.md
+        git checkout origin/main README.md
         git commit -m "Update upm README file"
         git push
         
