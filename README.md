@@ -25,15 +25,6 @@ public static void CreateCube (Vector3 pos, float scale)
   </li>
   <li>
     <p>Parsing support for all basic C# types, <code>IEnumerable&lt;T&gt;</code>, <code>List&lt;T&gt;</code>, <code>Dictionary&lt;TKey, TValue&gt;</code>, and <a href="https://github.com/cronyxllc/DeveloperConsole/wiki/Supported-parameter-types">many more</a>.</p>
-    <pre lang="csharp">
-[Command("smorgasbord")]
-public static void Smorgasbord (int i, float f, List<string> l, Vector3? vector)
-{
-  // Do something
-}
-
-// Example: $ smorgasbord 5 20.1 [foo bar "hello world"] (1 2 3)
-    </pre>
   </li>
   
   <li>
@@ -81,12 +72,11 @@ public static void CustomCommand(
     <p>Add custom widgets, images, and media by extending the <code>ConsoleEntry</code> class.</p>
   </li>
   <li>
-  <p>Custom command line parsing through the <code>IConsoleCommand</code> interface.</p>
+  <p>Implement custom command line parsing through the <code>IConsoleCommand</code> interface.</p>
   <pre lang="csharp">
 [Command("cmd")]
 public class MyCommand : IConsoleCommand
 {
-  public string Help => null;
   public void Invoke(string data)
   {
     // Parse command line input passed to this command
