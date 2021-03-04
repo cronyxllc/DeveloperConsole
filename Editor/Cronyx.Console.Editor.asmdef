@@ -1,0 +1,19 @@
+{
+    "name": "Cronyx.Console.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:862302f10f30f01468b830cb6ed47383",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
