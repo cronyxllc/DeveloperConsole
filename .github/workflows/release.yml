@@ -44,18 +44,18 @@ jobs:
         FOLDER: console/Packages/com.cronyx.console
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
-    # Move main README file into the upm branch
-    - run: |
-        git checkout origin/main README.md
-        git commit -m "Update upm README file"
-        git push
-     
      # Afterwards, change the git tag to reference the 'upm' branch
     - run: |
         git fetch
         git checkout upm
         git push origin -d ${{ github.event.release.tag_name }} # Delete old tag on remote
         git tag -d "${{ github.event.release.tag_name }}" # Delete tag that was created with the new release
+        
+        # Move main README file into the upm branch
+        git checkout origin/main README.md
+        git commit -m "Update upm README file"
+        git push
+        
         git tag "${{ github.event.release.tag_name }}" # Create new tag references 'upm' branch
         git push --tags # Push new tag
         
