@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace Cronyx.Console.Commands.Shell
 {
@@ -11,6 +13,10 @@ namespace Cronyx.Console.Commands.Shell
 	{
 		private const string kCommandName = "help";
 		private static readonly string kUsage = $"usage: {kCommandName} [command]";
+
+		private static readonly string kEssentialColor = ColorUtility.ToHtmlStringRGB(new Color(76f / 255, 146f / 255, 245f / 255));
+
+		private const int kIndent = 4;
 
 		public string Help { get; } = $"{kUsage}\nIf no command is provided, lists all available commands.";
 
@@ -23,11 +29,33 @@ namespace Cronyx.Console.Commands.Shell
 			if (args.Length == 0)
 			{
 				// No arguments provided, list all commands
-				var commands = DeveloperConsole.Console.mCommands;
+
+				// Sort commands alphabetically
+				var commands = from command in DeveloperConsole.Commands
+							   orderby command.Name
+							   select command;
+
+				var commandColumnWidth = commands.Select(command => command.Name).Max(name => name.Length) + kIndent + 22; // Add 22 characters for the additional <color=#xxxxxx></color> rich text tags
 
 				// Compile string of all commands and descriptions
 				StringBuilder sb = new StringBuilder();
-				foreach (var command in commands) sb.AppendLine($"{command.Key,-20} {command.Value.Description ?? string.Empty,-100}");
+				foreach (var command in commands)
+				{
+					string commandName = command.Name;
+
+					// Show commands in a special color if they are essential
+					if (command.Essential) commandName = $"<color=#{kEssentialColor}>{commandName}</color>";
+
+					if (string.IsNullOrWhiteSpace(command.Description)) sb.AppendLine(command.Name); // No description, so don't print it
+					else
+					{
+						// There is a description. Split it into lines and then print it out with the proper column indentation
+						var lines = Regex.Split(command.Description, "\r\n|\r|\n");
+						sb.AppendLine(string.Format($"{{0,{-commandColumnWidth}}}{{1}}", commandName, lines[0]));
+						for (int i = 1; i < lines.Length; i++)
+							sb.AppendLine(string.Format($"{{0,{-commandColumnWidth}}}{{1}}", string.Empty, lines[i]));
+					}
+				}
 				DeveloperConsole.Log(sb.ToString());
 			}
 			else if (args.Length == 1)

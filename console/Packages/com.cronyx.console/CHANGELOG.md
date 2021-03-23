@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added a public overload for `DeveloperConsole.RegisterCommand` that takes an `IConsoleCommand` instance.
 
+### Changed
+- Made the formatting of the `help` command more rigorous, supporting multi-line command descriptions and coloring built-in commands blue.
+
 ## [1.1.1] - 2021-03-23
 ### Changed
 - Changed `package.json` version to reflect actual, current version
