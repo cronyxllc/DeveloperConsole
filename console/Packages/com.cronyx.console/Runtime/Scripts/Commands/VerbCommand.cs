@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Cronyx.Console.Commands.Shell;
 using Cronyx.Console.Parsing;
@@ -14,33 +15,6 @@ namespace Cronyx.Console.Commands
 	/// </summary>
 	public abstract class VerbCommand : IConsoleCommand
 	{
-		private class VerbMethodCommand : MethodCommand
-		{
-			protected VerbCommand Parent { get; }
-
-			public override string Help => MethodParser.CalculateHelp(FullName);
-			protected string FullName => $"{Parent.Name} {Name}";
-
-			public override void Invoke(string data)
-			{
-				if (!MethodParser.TryParse(data, out var arguments))
-				{
-					// Failed to parse input. Show usage
-					DeveloperConsole.Log(Help);
-					return;
-				}
-
-				Method.Invoke(Target, arguments);
-			}
-
-			public VerbMethodCommand(string name, MethodInfo method, VerbCommand parent, object target)
-				: base(name, method, target)
-			{
-				Parent = parent;
-				MethodParser.QuoteCommandNames = false;
-			}
-		}
-
 		/// <summary>
 		/// A wrapper class around <see cref="IConsoleCommand"/> that contains information about a verb.
 		/// </summary>
@@ -69,12 +43,47 @@ namespace Cronyx.Console.Commands
 			}
 		}
 
-		public virtual string Help => throw new NotImplementedException();
+		public virtual string Help => GetHelp();
+
+		private string GetHelp()
+		{
+			const int indent = 4;
+
+			if (mVerbs.Count == 0) return null;
+
+			StringBuilder sb = new StringBuilder();
+			sb.AppendLine("Possible subcommands are:");
+
+			var verbs = Verbs.OrderBy(v => v.Name).ToArray();
+			var verbNames = verbs.Select(v => v.Name).ToArray();
+			for (int i = 0; i < verbNames.Length; i++) verbNames[i] = $"* {Name} {verbNames[i]}";
+
+			int verbColumnWidth = verbNames.Max(v => v.Length) + 4;
+			string rowFormat = $"{{0,{-verbColumnWidth}}}{{1}}";
+
+			for (int i = 0; i < verbs.Length; i++)
+			{
+				sb.Append(' ', indent); // Indent each row
+				if (verbs[i].Description == null) sb.AppendLine(verbNames[i]);
+				else
+				{
+					var lines = Regex.Split(verbs[i].Description, "\r\n|\r|\n");
+					sb.AppendLine(string.Format(rowFormat, verbNames[i], lines[0]));
+					for (int j = 1; j < lines.Length; j++)
+					{
+						sb.Append(' ', indent); // Indent each row
+						sb.AppendLine(string.Format(rowFormat, string.Empty, lines[j]));
+					}
+				}
+			}
+
+			return sb.ToString();
+		}
 
 		/// <summary>
 		/// Gets the name of this command for help and usage text.
 		/// </summary>
-		protected virtual string Name => GetType().GetCustomAttribute<CommandAttribute>().Name;
+		public virtual string Name => GetType().GetCustomAttribute<CommandAttribute>().Name;
 
 		private Dictionary<string, Verb> mVerbs = new Dictionary<string, Verb>();
 
@@ -112,7 +121,6 @@ namespace Cronyx.Console.Commands
 
 					foreach (var v in verbsAlphabetized)
 						sb.AppendLine($"    * {Name} {v.Name}");
-
 					DeveloperConsole.LogWarning(sb.ToString());
 				}
 			}
@@ -121,10 +129,7 @@ namespace Cronyx.Console.Commands
 		/// <summary>
 		/// A command that is called when this verb command is run without specifying a verb. By default, shows help text.
 		/// </summary>
-		protected virtual void Invoke ()
-		{
-
-		}
+		protected virtual void Invoke () => DeveloperConsole.Log(Help);
 
 		/// <summary>
 		/// Adds a new verb to this <see cref="VerbCommand"/>
@@ -191,23 +196,30 @@ namespace Cronyx.Console.Commands
 		}
 	}
 
-	[Command("test")]
-	public class VerbTest : VerbCommand
+	internal class VerbMethodCommand : MethodCommand
 	{
-		public VerbTest()
+		protected VerbCommand Parent { get; }
+
+		public override string Help => MethodParser.CalculateHelp(FullName);
+		protected string FullName => $"{Parent.Name} {Name}";
+
+		public override void Invoke(string data)
 		{
-			RegisterVerb("foo", new Action(Foo), "hi there");
-			RegisterVerb("bar", new Action<string, int>(Bar));
+			if (!MethodParser.TryParse(data, out var arguments))
+			{
+				// Failed to parse input. Show usage
+				DeveloperConsole.Log(Help);
+				return;
+			}
+
+			Method.Invoke(Target, arguments);
 		}
 
-		public void Foo ()
+		public VerbMethodCommand(string name, MethodInfo method, VerbCommand parent, object target)
+			: base(name, method, target)
 		{
-			DeveloperConsole.Log("FOO!!!!");
-		}
-
-		public void Bar (string x, [Switch('f')] int y)
-		{
-			DeveloperConsole.Log($"This is bar: {x} {y}");
+			Parent = parent;
+			MethodParser.QuoteCommandNames = false;
 		}
 	}
 }

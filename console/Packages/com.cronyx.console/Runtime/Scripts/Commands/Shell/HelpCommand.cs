@@ -35,10 +35,15 @@ namespace Cronyx.Console.Commands.Shell
 							   orderby command.Name
 							   select command;
 
-				var commandColumnWidth = commands.Select(command => command.Name).Max(name => name.Length) + kIndent + 22; // Add 22 characters for the additional <color=#xxxxxx></color> rich text tags
+				const int kRichTextMargin = 23; // Add characters for the additional <color=#xxxxxx></color> rich text tags
+				var commandColumnWidth = commands.Select(command => command.Name).Max(name => name.Length) + kIndent; 
 
 				// Compile string of all commands and descriptions
 				StringBuilder sb = new StringBuilder();
+
+				string essentialRowFormat = $"{{0,{-commandColumnWidth - kRichTextMargin}}}{{1}}";
+				string rowFormat = $"{{0,{-commandColumnWidth}}}{{1}}";
+
 				foreach (var command in commands)
 				{
 					string commandName = command.Name;
@@ -51,9 +56,9 @@ namespace Cronyx.Console.Commands.Shell
 					{
 						// There is a description. Split it into lines and then print it out with the proper column indentation
 						var lines = Regex.Split(command.Description, "\r\n|\r|\n");
-						sb.AppendLine(string.Format($"{{0,{-commandColumnWidth}}}{{1}}", commandName, lines[0]));
+						sb.AppendLine(string.Format(command.Essential ? essentialRowFormat : rowFormat, commandName, lines[0]));
 						for (int i = 1; i < lines.Length; i++)
-							sb.AppendLine(string.Format($"{{0,{-commandColumnWidth}}}{{1}}", string.Empty, lines[i]));
+							sb.AppendLine(string.Format(rowFormat, string.Empty, lines[i]));
 					}
 				}
 				DeveloperConsole.Log(sb.ToString());
