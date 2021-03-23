@@ -26,7 +26,7 @@ namespace Cronyx.Console.Parsing
 			AddParser(new IntegralParser<uint>("uint", x => uint.Parse(x)));
 			AddParser(new IntegralParser<long>("long", x => long.Parse(x)));
 			AddParser(new IntegralParser<ulong>("ulong", x => ulong.Parse(x)));
-			
+
 			// Floating point types
 			AddParser(new FloatingParser<float>("float", x => float.Parse(x)));
 			AddParser(new FloatingParser<double>("double", x => double.Parse(x)));
@@ -159,7 +159,7 @@ namespace Cronyx.Console.Parsing
 		/// <typeparam name="T">The type for which a parser should be found.</typeparam>
 		/// <returns>A <see cref="ParameterParser{T}"/> that can parse and return objects of type <typeparamref name="T"/> from a string representation of that type.</returns>
 		/// <exception cref="ParserNotFoundException">Thrown if the parser of type <typeparamref name="T"/> could not be found or created.</exception>
-		public static ParameterParser<T> GetParser <T> () => GetParser(typeof(T)) as ParameterParser<T>;
+		public static ParameterParser<T> GetParser<T>() => GetParser(typeof(T)) as ParameterParser<T>;
 
 		// Type can be a concrete type, such as int or float, for which an explicit parser has been declared,
 		// or it can be a closed generic type, such as List<int> or HashSet<float>, for which no explicit parser has been declared
@@ -298,7 +298,7 @@ namespace Cronyx.Console.Parsing
 
 			public string ParserFormat => Parser.GetFormat();
 
-			private IParameterParser GetOrCreateParser ()
+			private IParameterParser GetOrCreateParser()
 			{
 				// If a custom parser was specified, create it
 				if (mOptionalParserType != null)
@@ -306,7 +306,7 @@ namespace Cronyx.Console.Parsing
 				return GetParser(FieldType);
 			}
 
-			public static Parameter FromParameterInfo (ParameterInfo info)
+			public static Parameter FromParameterInfo(ParameterInfo info)
 			{
 				var parameter = new Parameter();
 				parameter.FieldType = info.ParameterType;
@@ -435,6 +435,8 @@ namespace Cronyx.Console.Parsing
 		private List<Parameter> mPositionals = new List<Parameter>();
 		private List<Parameter> mNonPositionals = new List<Parameter>();
 		private Dictionary<Parameter, int> mParameterIndexes = new Dictionary<Parameter, int>();
+
+		public bool QuoteCommandNames { get; set; } = true;
 
 		private Parser() { }
 
@@ -756,9 +758,9 @@ namespace Cronyx.Console.Parsing
 			// If the command name contains whitespace, surround it with quotes
 			if (commandName.Any(char.IsWhiteSpace))
 			{
-				sb.Append('"');
+				if (QuoteCommandNames) sb.Append('"');
 				WriteEscaped();
-				sb.Append('"');
+				if (QuoteCommandNames) sb.Append('"');
 			}
 			else WriteEscaped();
 

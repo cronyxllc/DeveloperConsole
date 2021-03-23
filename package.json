@@ -1,6 +1,6 @@
 {
   "name": "com.cronyx.console",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "displayName": "Developer Console",
   "description": "A lightweight and extendable in-game developer console",
   "unity": "2020.2",

@@ -224,7 +224,7 @@ namespace Cronyx.Console
 		public static IReadOnlyList<int> SplitPositions => ConsoleUtilities.Splits;
 
 		/// <summary>
-		/// Registers a non-persistent console command.
+		/// Registers a console command that manually parses the raw command-line input.
 		/// </summary>
 		/// <param name="name">
 		/// <para>The name of the command.</para>
@@ -239,7 +239,7 @@ namespace Cronyx.Console
 		/// <param name="help">An optional help string that may display usage information, subcommands, etc. when requested by the user.</param>
 		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or empty, or if <paramref name="parseCommand"/> is null.</exception>
 		/// <exception cref="InvalidOperationException">Thrown if <paramref name="name"/> is taken by another command.</exception>
-		public static void RegisterCommand(string name, Action<string> parseCommand, string description = null, string help = null)
+		public static void RegisterCommandManual(string name, Action<string> parseCommand, string description = null, string help = null)
 		{
 			if (string.IsNullOrWhiteSpace(name))
 				throw new ArgumentException("Command name cannot be null or whitespace.");
@@ -266,7 +266,26 @@ namespace Cronyx.Console
 			if (command == null)
 				throw new ArgumentException("Command delegate cannot be null.");
 
-			Console?.Register(name, new CommandData(name, false, description, new MethodCommand(name.Trim().ToLower(), command.GetMethodInfo())));
+			Console?.Register(name, new CommandData(name, false, description, new MethodCommand(name.Trim().ToLower(), command.GetMethodInfo(), command.Target)));
+		}
+
+		/// <summary>
+		/// Registers an <see cref="IConsoleCommand"/> object containing the implementation for a console command.
+		/// </summary>
+		/// <param name="name">A unique name for this command. Cannot be null or whitespace.</param>
+		/// <param name="command">An <see cref="IConsoleCommand"/> instance containing the implementation of the command.</param>
+		/// <param name="description">A short, optional description of the command that appears in a list of all commands.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or empty, or if <paramref name="command"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">Thrown if <paramref name="name"/> is taken by another command.</exception>
+		public static void RegisterCommand(string name, IConsoleCommand command, string description = null)
+		{
+			if (string.IsNullOrWhiteSpace(name))
+				throw new ArgumentException("Command name cannot be null or whitespace.");
+
+			if (command == null)
+				throw new ArgumentException("IConsoleCommand instance cannot be null.");
+
+			Console?.Register(name, new CommandData(name, false, description, command));
 		}
 
 		/// <summary>
