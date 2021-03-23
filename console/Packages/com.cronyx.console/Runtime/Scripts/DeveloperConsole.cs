@@ -270,6 +270,25 @@ namespace Cronyx.Console
 		}
 
 		/// <summary>
+		/// Registers an <see cref="IConsoleCommand"/> object containing the implementation for a console command.
+		/// </summary>
+		/// <param name="name">A unique name for this command. Cannot be null or whitespace.</param>
+		/// <param name="command">An <see cref="IConsoleCommand"/> instance containing the implementation of the command.</param>
+		/// <param name="description">A short, optional description of the command that appears in a list of all commands.</param>
+		/// <exception cref="ArgumentException">Thrown if <paramref name="name"/> is null or empty, or if <paramref name="command"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">Thrown if <paramref name="name"/> is taken by another command.</exception>
+		public static void RegisterCommand(string name, IConsoleCommand command, string description = null)
+		{
+			if (string.IsNullOrWhiteSpace(name))
+				throw new ArgumentException("Command name cannot be null or whitespace.");
+
+			if (command == null)
+				throw new ArgumentException("IConsoleCommand instance cannot be null.");
+
+			Console?.Register(name, new CommandData(name, false, description, command));
+		}
+
+		/// <summary>
 		/// Unregisters a command.
 		/// </summary>
 		/// <param name="name">The name of the command to unregister (case-insensitive, leading and trailing whitespace ignored).</param>
