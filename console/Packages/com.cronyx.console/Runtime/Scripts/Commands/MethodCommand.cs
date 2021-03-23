@@ -14,30 +14,32 @@ namespace Cronyx.Console.Commands
 	/// </summary>
 	internal class MethodCommand : IConsoleCommand
 	{
-		private string mName;
-		private MethodInfo mMethod;
-		private Parser mParser;
+		protected string Name { get; }
+		protected MethodInfo Method { get; }
+		protected object Target { get; }
+		protected Parser MethodParser { get; }
 
-		public string Help => mParser.CalculateHelp(mName);
+		public virtual string Help => MethodParser.CalculateHelp(Name);
 
-		public void Invoke(string data)
+		public virtual void Invoke(string data)
 		{
-			if (!mParser.TryParse(data, out var arguments))
+			if (!MethodParser.TryParse(data, out var arguments))
 			{
 				// Failed to parse input. Show usage
-				DeveloperConsole.LogWarning($"{mParser.CalculateUsage(mName)}\n" +
-					$"Try '{typeof(HelpCommand).GetCustomAttribute<CommandAttribute>().Name} {mName}' for more information.");
+				DeveloperConsole.LogWarning($"{MethodParser.CalculateUsage(Name)}\n" +
+					$"Try '{typeof(HelpCommand).GetCustomAttribute<CommandAttribute>().Name} {Name}' for more information.");
 				return;
 			}
 
-			mMethod.Invoke(null, arguments);
+			Method.Invoke(Target, arguments);
 		}
 
-		public MethodCommand(string name, MethodInfo method)
+		public MethodCommand(string name, MethodInfo method, object target = null)
 		{
-			mName = name;
-			mMethod = method;
-			mParser = Parser.FromMethodInfo(method);
+			Name = name;
+			Method = method;
+			Target = target;
+			MethodParser = Parser.FromMethodInfo(method);
 		}
 	}
 }
