@@ -1,19 +1,21 @@
+# Third Party Notices
+
 This package contains third-party software components governed by the license(s) indicated below:
 
-Component Name: Semver
+## Semver
 
-License Type: "MIT"
+MIT License
 
 [SemVer License](https://github.com/myusername/semver/blob/master/License.txt)
 
-Component Name: Keep a Changelog
+## Keep a Changelog
 
-License Type: "MIT"
+MIT License
 
 [Keep a Changelog License](https://github.com/olivierlacan/keep-a-changelog/blob/master/LICENSE)
 
-Component Name: TextMeshPro
+## TextMeshPro
 
-License Type: "Unity Companion License"
+Unity Companion License
 
 [TextMeshPro License](https://docs.unity3d.com/Packages/com.unity.textmeshpro@3.0/license/LICENSE.html)

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cronyx.Console.Parsing;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,13 +13,11 @@ namespace Cronyx.Console.Commands.Shell
 
 		private static readonly char[] invalidChars = Path.GetInvalidPathChars();
 
-		// Creates a new path given an input path.
+		// Navigates to a file path that may be relative to the console's current
+		// working directory. If it is, stores the equivalent rooted path
 		//
-		// Appends <path> to the current working directory to create the new path if it is a relative path,
-		// otherwise if <path> is absolute, uses <path> itself.
-		// 
-		// Returns true if the new path is a valid directory
-		public static bool TryNavigateDirectory (string path, out string newPath)
+		// Returns false if the given path is invalid
+		public static bool TryNavigatePath (string path, out string newPath)
 		{
 			path = path.Trim();
 			newPath = string.Empty;
@@ -29,8 +28,32 @@ namespace Cronyx.Console.Commands.Shell
 				newPath = path;
 			else newPath = Path.Combine(DeveloperConsole.WorkingDirectory, path);
 
+			return true;
+		}
+
+		// Creates a new path given an input path.
+		//
+		// Appends <path> to the current working directory to create the new path if it is a relative path,
+		// otherwise if <path> is absolute, uses <path> itself.
+		// 
+		// Returns true if the new path is a valid directory
+		public static bool TryNavigateDirectory (string path, out string newPath)
+		{
+			if (!TryNavigatePath(path, out newPath)) return false;
 			return Directory.Exists(newPath); 
-		} 
+		}
+
+		// Creates a new path given an input path.
+		//
+		// Appends <path> to the current working directory to create the new path if it is a relative path,
+		// otherwise if <path> is absolute, uses <path> itself.
+		// 
+		// Returns true if the new path is a valid file
+		public static bool TryNavigateFile(string path, out string newPath)
+		{
+			if (!TryNavigatePath(path, out newPath)) return false;
+			return File.Exists(newPath);
+		}
 
 		[Command(kCommandName, Description = "Changes the current directory")]
 		[Essential]
@@ -129,6 +152,89 @@ namespace Cronyx.Console.Commands.Shell
 				if (args.Length != 0) LogWarning(Help);
 				else DeveloperConsole.Log(DeveloperConsole.WorkingDirectory);
 			}
+		}
+
+		private static void LogWarning(string commandName, object message) => DeveloperConsole.LogWarning($"{commandName}: {message}");
+
+		private const string kRmCmdName = "rm";
+		[Command(kRmCmdName, Description = "Deletes the specified file or directory"), Essential]
+		public static void RemoveDirectory (
+			[Positional(Description = "A path to a file (or a directory if '-r' is specified).")] string path,
+			[Switch('r', Description = "Removes directories recursively. Only works for directories.")] bool recursive
+			)
+		{
+			try
+			{
+				if (recursive)
+				{
+					// Deleting a directory
+					if (TryNavigateDirectory(path, out string dirPath))
+					{
+						Directory.Delete(dirPath, true);
+					}
+					else LogWarning(kRmCmdName, $"cannot remove '{path}': no such directory");
+				} else
+				{
+					// Deleting a file
+					if (TryNavigateFile(path, out string filePath))
+					{
+						File.Delete(filePath);
+					} else LogWarning(kRmCmdName, $"cannot remove '{path}': no such file");
+				}
+			}
+			catch (IOException)
+			{
+				LogWarning(kRmCmdName, $"cannot remove '{path}': encountered IO exception");
+			}
+			catch (UnauthorizedAccessException)
+			{
+				LogWarning(kRmCmdName, $"cannot remove '{path}': unauthorized access");
+			}
+			catch (ArgumentException)
+			{
+				LogWarning(kRmCmdName, $"invalid path name");
+			}
+		}
+
+		private const string kMakeDirCmdName = "mkdir";
+		[Command(kMakeDirCmdName, Description = "Creates the specified directory"), Essential]
+		public static void MakeDirectory (
+			[Positional(Description = "A path to the directory to be created.")] string path
+			)
+		{
+			if (TryNavigatePath(path, out string dirPath))
+			{
+				try
+				{
+					Directory.CreateDirectory(dirPath);
+				}
+				catch (PathTooLongException)
+				{
+					LogWarning(kRmCmdName, $"cannot create directory '{path}': path too long");
+				}
+				catch (DirectoryNotFoundException)
+				{
+					LogWarning(kRmCmdName, $"cannot create directory '{path}': the specified path is invalid");
+				}
+				catch (NotSupportedException)
+				{
+					LogWarning(kRmCmdName, $"cannot create directory '{path}': path contains a colon (:) that is not part of a drive label (e.g. 'C:\\')");
+				}
+				catch (IOException)
+				{
+					LogWarning(kMakeDirCmdName, $"cannot create directory '{path}': encountered IO exception");
+				}
+				catch (UnauthorizedAccessException)
+				{
+					LogWarning(kRmCmdName, $"cannot create directory '{path}': unauthorized access");
+				}
+				catch (ArgumentException)
+				{
+					LogWarning(kRmCmdName, $"invalid path name");
+				} 
+
+			}
+			else LogWarning(kMakeDirCmdName, "invalid path name");
 		}
 	}
 }
